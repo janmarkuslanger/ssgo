@@ -8,6 +8,14 @@ import (
 	"github.com/janmarkuslanger/ssgo/writer"
 )
 
+func TestFileWriter_New(t *testing.T) {
+	var fw any = writer.NewFileWriter()
+
+	if _, ok := fw.(*writer.FileWriter); !ok {
+		t.Fatalf("doesnt create correct pointer")
+	}
+}
+
 func TestFileWriter_Write(t *testing.T) {
 	tmpDir := t.TempDir()
 

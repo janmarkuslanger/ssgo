@@ -10,6 +10,10 @@ const (
 	DirPerm  = 0755
 )
 
+func NewFileWriter() *FileWriter {
+	return &FileWriter{}
+}
+
 type FileWriter struct{}
 
 func (w *FileWriter) Write(path string, content string) error {
