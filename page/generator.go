@@ -14,3 +14,7 @@ type Config struct {
 	GetPaths func() map[string]string
 	Renderer rendering.Renderer
 }
+
+type Generator struct {
+	Config Config
+}
