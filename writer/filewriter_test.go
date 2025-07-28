@@ -29,3 +29,22 @@ func TestFileWriter_Write(t *testing.T) {
 		t.Errorf("unexpected content: got %q, want %q", data, content)
 	}
 }
+
+func TestFileWriter_Write_err(t *testing.T) {
+	tmp := t.TempDir()
+
+	conflictPath := filepath.Join(tmp, "foo")
+	err := os.WriteFile(conflictPath, []byte("I am a file"), 0644)
+	if err != nil {
+		t.Fatalf("unexpected error creating file: %v", err)
+	}
+
+	writer := writer.FileWriter{}
+	targetPath := filepath.Join(conflictPath, "bar", "index.html")
+	err = writer.Write(targetPath, "test content")
+
+	if err == nil {
+		t.Fatal("expected mkdir to fail, but got no error")
+	}
+	t.Logf("got expected error: %v", err)
+}
