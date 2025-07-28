@@ -18,13 +18,17 @@ func TestExtractPattern(t *testing.T) {
 	})
 }
 
-func TestBuildPath(t *testing.T) {
-	assert.Equal(t, page.BuildPath("/hello/:id", map[string]string{
-		"id": "123",
-	}), "/hello/123")
-
-	assert.Equal(t, page.BuildPath("/:hello/:id", map[string]string{
+func TestBuildPath_success(t *testing.T) {
+	p, err := page.BuildPath("/wow/:hello/:id/test", map[string]string{
 		"id":    "123",
 		"hello": "world",
-	}), "/world/123")
+	})
+	assert.Equal(t, p, "/wow/world/123/test")
+	assert.Equal(t, err, nil)
+}
+
+func TestBuildPath_missingdata(t *testing.T) {
+	p, err := page.BuildPath("/hello/:id", map[string]string{})
+	assert.Equal(t, p, "")
+	assert.EqualError(t, err, "could not replace url param: :id")
 }

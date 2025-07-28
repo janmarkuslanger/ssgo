@@ -1,6 +1,9 @@
 package page
 
-import "strings"
+import (
+	"errors"
+	"strings"
+)
 
 func ExtractParams(pattern string, path string) map[string]string {
 	params := make(map[string]string)
@@ -15,14 +18,14 @@ func ExtractParams(pattern string, path string) map[string]string {
 	return params
 }
 
-func BuildPath(pattern string, params map[string]string) string {
+func BuildPath(pattern string, params map[string]string) (string, error) {
 	var path string
 	patternPaths := strings.Split(pattern, "/")
 	for i, pp := range patternPaths {
 		if strings.HasPrefix(pp, ":") {
 			v, ok := params[strings.TrimPrefix(pp, ":")]
 			if !ok {
-				continue
+				return "", errors.New("could not replace url param: " + pp)
 			}
 			path += v
 		} else {
@@ -34,5 +37,5 @@ func BuildPath(pattern string, params map[string]string) string {
 		}
 	}
 
-	return path
+	return path, nil
 }
