@@ -34,11 +34,11 @@ func TestGeneratorGeneratePages_simple(t *testing.T) {
 	p, err := g.GeneratePageInstances()
 
 	if err != nil {
-		t.Error("there should be an error")
+		t.Errorf("unexpected error: %v", err)
 	}
 
 	if len(p) != 2 {
-		t.Error("there should be 2 pages")
+		t.Errorf("expected 2 pages, got %d", len(p))
 	}
 
 	if p[0].Path != "hello/world" {
