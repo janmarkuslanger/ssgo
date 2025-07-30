@@ -74,7 +74,7 @@ func TestBuilder_Build_FailingGeneratePageInstances(t *testing.T) {
 	}
 }
 
-func TestBuilder_Build_Failingwriter(t *testing.T) {
+func TestBuilder_Build_FailingWriter(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriterFail{},
@@ -97,7 +97,7 @@ func TestBuilder_Build_Failingwriter(t *testing.T) {
 	}
 }
 
-func TestBuilder_Build_Failingrenderer(t *testing.T) {
+func TestBuilder_Build_FailingRenderer(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},

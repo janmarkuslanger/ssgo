@@ -24,7 +24,7 @@ func TestHTMLRenderer_Render_Success(t *testing.T) {
 	}
 
 	renderer := rendering.HTMLRenderer{
-		[]string{layoutPath},
+		Layout: []string{layoutPath},
 	}
 	out, err := renderer.Render(rendering.RenderContext{
 		Data:     map[string]any{"Name": "Jan"},
