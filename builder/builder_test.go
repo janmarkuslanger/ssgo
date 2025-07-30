@@ -105,7 +105,7 @@ func TestBuilder_Build_failingwriter(t *testing.T) {
 func TestBuilder_Build_failingrenderer(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
-		Writer:    MockWriterFail{},
+		Writer:    MockWriter{},
 		Pages: []page.Generator{
 			{
 				Config: page.Config{
