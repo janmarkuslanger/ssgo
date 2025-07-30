@@ -33,7 +33,7 @@ func (r MockRendererFail) Render(ctx rendering.RenderContext) (output string, er
 	return "", errors.New("something went wrong")
 }
 
-func TestBuilder_Build_success(t *testing.T) {
+func TestBuilder_Build_Success(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
@@ -56,7 +56,7 @@ func TestBuilder_Build_success(t *testing.T) {
 	}
 }
 
-func TestBuilder_Build_failingGeneratePageInstances(t *testing.T) {
+func TestBuilder_Build_FailingGeneratePageInstances(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
@@ -74,7 +74,7 @@ func TestBuilder_Build_failingGeneratePageInstances(t *testing.T) {
 	}
 }
 
-func TestBuilder_Build_failingwriter(t *testing.T) {
+func TestBuilder_Build_FailingWriter(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriterFail{},
@@ -97,7 +97,7 @@ func TestBuilder_Build_failingwriter(t *testing.T) {
 	}
 }
 
-func TestBuilder_Build_failingrenderer(t *testing.T) {
+func TestBuilder_Build_FailingRenderer(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},

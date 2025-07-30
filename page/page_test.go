@@ -13,7 +13,7 @@ func (r MockRenderer) Render(ctx rendering.RenderContext) (string, error) {
 	return "hello world", nil
 }
 
-func TestPage_Render_norenderer(t *testing.T) {
+func TestPage_Render_Norenderer(t *testing.T) {
 	p := page.Page{}
 	_, err := p.Render()
 
@@ -22,7 +22,7 @@ func TestPage_Render_norenderer(t *testing.T) {
 	}
 }
 
-func TestPage_Render_simplerenderer(t *testing.T) {
+func TestPage_Render_Simplerenderer(t *testing.T) {
 	p := page.Page{
 		Renderer: MockRenderer{},
 	}

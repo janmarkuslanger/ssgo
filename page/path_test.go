@@ -32,7 +32,7 @@ func TestExtractPattern(t *testing.T) {
 	}
 }
 
-func TestBuildPath_success(t *testing.T) {
+func TestBuildPath_Success(t *testing.T) {
 	got, err := page.BuildPath("/wow/:hello/:id/test", map[string]string{
 		"id":    "123",
 		"hello": "world",
@@ -47,7 +47,7 @@ func TestBuildPath_success(t *testing.T) {
 	}
 }
 
-func TestBuildPath_missingdata(t *testing.T) {
+func TestBuildPath_Missingdata(t *testing.T) {
 	got, err := page.BuildPath("/hello/:id", map[string]string{})
 	if err == nil {
 		t.Fatal("expected an error but got nil")
@@ -61,7 +61,7 @@ func TestBuildPath_missingdata(t *testing.T) {
 	}
 }
 
-func TestBuildPath_noparamneeded(t *testing.T) {
+func TestBuildPath_Noparamneeded(t *testing.T) {
 	got, err := page.BuildPath("/hello/world", map[string]string{})
 	if err != nil {
 		t.Fatal("expected no error but got one")

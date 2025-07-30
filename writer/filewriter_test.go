@@ -38,7 +38,7 @@ func TestFileWriter_Write(t *testing.T) {
 	}
 }
 
-func TestFileWriter_Write_err(t *testing.T) {
+func TestFileWriter_Write_Err(t *testing.T) {
 	tmp := t.TempDir()
 
 	conflictPath := filepath.Join(tmp, "foo")
