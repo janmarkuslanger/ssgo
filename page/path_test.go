@@ -60,3 +60,14 @@ func TestBuildPath_missingdata(t *testing.T) {
 		t.Errorf("expected empty path, got %q", got)
 	}
 }
+
+func TestBuildPath_noparamneeded(t *testing.T) {
+	got, err := page.BuildPath("/hello/world", map[string]string{})
+	if err != nil {
+		t.Fatal("expected no error but got one")
+	}
+
+	if got != "/hello/world" {
+		t.Errorf("unexpected path: got %q, want %q", got, "/hello/world")
+	}
+}

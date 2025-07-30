@@ -1,6 +1,10 @@
 package page
 
-import "github.com/janmarkuslanger/ssgo/rendering"
+import (
+	"errors"
+
+	"github.com/janmarkuslanger/ssgo/rendering"
+)
 
 type PagePayload struct {
 	Params map[string]string
@@ -11,10 +15,42 @@ type Config struct {
 	Template string
 	Pattern  string
 	GetData  func(payload PagePayload) map[string]any
-	GetPaths func() map[string]string
+	GetPaths func() []string
 	Renderer rendering.Renderer
 }
 
 type Generator struct {
 	Config Config
+}
+
+func (g Generator) GeneratePageInstances() ([]Page, error) {
+	pages := []Page{}
+
+	if g.Config.GetPaths == nil {
+		return pages, errors.New("GetPaths is not defined in Config")
+	}
+
+	for _, path := range g.Config.GetPaths() {
+		data := make(map[string]any)
+		params := ExtractParams(g.Config.Pattern, path)
+
+		if g.Config.GetData != nil {
+			data = g.Config.GetData(PagePayload{
+				Path:   path,
+				Params: params,
+			})
+		}
+
+		p := Page{
+			Path:     path,
+			Params:   params,
+			Data:     data,
+			Template: g.Config.Template,
+			Renderer: g.Config.Renderer,
+		}
+
+		pages = append(pages, p)
+	}
+
+	return pages, nil
 }
