@@ -56,7 +56,7 @@ func TestBuilder_Build_success(t *testing.T) {
 	}
 }
 
-func TestBuilder_Build_nilRenderer(t *testing.T)
+func TestBuilder_Build_nilRenderer(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
