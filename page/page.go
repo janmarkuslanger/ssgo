@@ -11,7 +11,6 @@ type Page struct {
 	Params   map[string]string
 	Data     map[string]any
 	Template string
-	Layouts  []string
 	Renderer rendering.Renderer
 }
 
@@ -23,6 +22,5 @@ func (p Page) Render() (string, error) {
 	return p.Renderer.Render(rendering.RenderContext{
 		Data:     p.Data,
 		Template: p.Template,
-		Layout:   p.Layouts,
 	})
 }

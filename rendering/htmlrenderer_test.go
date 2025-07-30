@@ -23,11 +23,12 @@ func TestHTMLRenderer_Render_Success(t *testing.T) {
 		t.Fatalf("could not write template: %v", err)
 	}
 
-	renderer := rendering.HTMLRenderer{}
+	renderer := rendering.HTMLRenderer{
+		[]string{layoutPath},
+	}
 	out, err := renderer.Render(rendering.RenderContext{
 		Data:     map[string]any{"Name": "Jan"},
 		Template: templatePath,
-		Layout:   []string{layoutPath},
 	})
 	if err != nil {
 		t.Fatalf("rendering failed: %v", err)
@@ -65,11 +66,12 @@ func TestHTMLRenderer_Render_UndefinedTemplate(t *testing.T) {
 		t.Fatalf("could not write template: %v", err)
 	}
 
-	renderer := rendering.HTMLRenderer{}
+	renderer := rendering.HTMLRenderer{
+		Layout: []string{layoutPath},
+	}
 	_, err = renderer.Render(rendering.RenderContext{
 		Data:     map[string]any{"Name": "Jan"},
 		Template: templatePath,
-		Layout:   []string{layoutPath},
 	})
 	if err == nil {
 		t.Fatal("expected error for undefined content block")

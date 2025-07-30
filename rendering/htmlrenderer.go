@@ -5,11 +5,13 @@ import (
 	"html/template"
 )
 
-type HTMLRenderer struct{}
+type HTMLRenderer struct {
+	Layout []string
+}
 
 func (r HTMLRenderer) Render(ctx RenderContext) (output string, err error) {
 	files := []string{}
-	files = append(files, ctx.Layout...)
+	files = append(files, r.Layout...)
 	files = append(files, ctx.Template)
 
 	tmpl, err := template.ParseFiles(files...)
