@@ -68,6 +68,6 @@ func TestBuildPath_noparamneeded(t *testing.T) {
 	}
 
 	if got != "/hello/world" {
-		t.Error("expected a valid path")
+		t.Errorf("unexpected path: got %q, want %q", got, "/hello/world")
 	}
 }

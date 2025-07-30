@@ -10,8 +10,13 @@ func TestGeneratorGeneratePages_missinggetpaths(t *testing.T) {
 	g := page.Generator{}
 	p, err := g.GeneratePageInstances()
 
-	if err.Error() != "GetPaths is not defined in Config" {
-		t.Error("should throw an error")
+	if err == nil {
+		t.Fatal("expected an error but got nil")
+	}
+
+	expectedErr := "GetPaths is not defined in Config"
+	if err.Error() != expectedErr {
+		t.Errorf("unexpected error message: got %q, want %q", err.Error(), expectedErr)
 	}
 
 	if len(p) != 0 {
