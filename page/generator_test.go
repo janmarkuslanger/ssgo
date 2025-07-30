@@ -7,7 +7,7 @@ import (
 	"github.com/janmarkuslanger/ssgo/page"
 )
 
-func TestGeneratorGeneratePages_missinggetpaths(t *testing.T) {
+func TestGeneratorGeneratePages_Missinggetpaths(t *testing.T) {
 	g := page.Generator{}
 	p, err := g.GeneratePageInstances()
 
@@ -25,7 +25,7 @@ func TestGeneratorGeneratePages_missinggetpaths(t *testing.T) {
 	}
 }
 
-func TestGeneratorGeneratePages_simple(t *testing.T) {
+func TestGeneratorGeneratePages_Simple(t *testing.T) {
 	c := page.Config{
 		GetPaths: func() []string {
 			return []string{
@@ -56,7 +56,7 @@ func TestGeneratorGeneratePages_simple(t *testing.T) {
 	}
 }
 
-func TestGeneratorGeneratePages_withdata(t *testing.T) {
+func TestGeneratorGeneratePages_Withdata(t *testing.T) {
 	c := page.Config{
 		Pattern: "/add/:number",
 		GetPaths: func() []string {
