@@ -56,18 +56,13 @@ func TestBuilder_Build_success(t *testing.T) {
 	}
 }
 
-func TestBuilder_Build_nilRenderer(t *testing.T) {
+func TestBuilder_Build_failingGeneratePageInstances(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
 		Pages: []page.Generator{
 			{
-				Config: page.Config{
-					Renderer: nil,
-					GetPaths: func() []string {
-						return []string{"a", "b"}
-					},
-				},
+				Config: page.Config{},
 			},
 		},
 	}
