@@ -65,7 +65,6 @@ func main() {
 		Layout: []string{"templates/layout.html"},
 	}
 
-    // this will me an api endpoint 
 	posts := map[string]map[string]any{
 		"hello-world": {
 			"Title":   "Hello World",
@@ -85,7 +84,6 @@ func main() {
 				return []string{"/blog/hello-world", "/blog/second-post"}
 			},
 			GetData: func(p page.PagePayload) map[string]any {
-                // for example doing calls against an api 
 				return posts[p.Params["slug"]]
 			},
 			Renderer: renderer,
