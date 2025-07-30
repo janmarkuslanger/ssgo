@@ -105,7 +105,7 @@ func TestGeneratorGeneratePages_withdata(t *testing.T) {
 	}
 
 	if p[2].Path != "/add/666" {
-		t.Errorf("page should not be: %q", p[1].Path)
+		t.Errorf("page should not be: %q", p[2].Path)
 	}
 
 	if n := p[2].Data["newnumber"]; n != 667 {
