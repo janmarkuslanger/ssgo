@@ -36,6 +36,8 @@ Or download directly:
 
 ## 🚀 Minimal Example
 
+In this example we use the default implementation of the renderer (https://pkg.go.dev/html/template) and the writer. 
+
 Create the following structure:
 
 ```
