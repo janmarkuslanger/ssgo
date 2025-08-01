@@ -60,6 +60,7 @@ import (
 	"github.com/janmarkuslanger/ssgo/builder"
 	"github.com/janmarkuslanger/ssgo/page"
 	"github.com/janmarkuslanger/ssgo/rendering"
+	"github.com/janmarkuslanger/ssgo/writer"
 )
 
 func main() {
@@ -94,8 +95,8 @@ func main() {
 
 	b := builder.Builder{
 		OutputDir: "public",
-		Writer:    builder.FileWriter{},
-		Generators: []page.Generator{
+		Writer:    &writer.FileWriter{},
+		Pages: []page.Generator{
 			generator,
 		},
 	}
@@ -104,6 +105,7 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
 ```
 
 ### templates/layout.html
