@@ -38,6 +38,29 @@ func TestFileWriter_Write(t *testing.T) {
 	}
 }
 
+func TestFileWriter_Write_NoHtml(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	writer := writer.FileWriter{}
+	path := filepath.Join(tmpDir, "test", "index")
+	htmlPath := path + ".html"
+	content := "<h1>Hello</h1>"
+
+	err := writer.Write(path, content)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, err := os.ReadFile(htmlPath)
+	if err != nil {
+		t.Fatalf("file was not created: %v", err)
+	}
+
+	if string(data) != content {
+		t.Errorf("unexpected content: got %q, want %q", data, content)
+	}
+}
+
 func TestFileWriter_Write_Err(t *testing.T) {
 	tmp := t.TempDir()
 

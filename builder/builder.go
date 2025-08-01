@@ -6,17 +6,42 @@ import (
 
 	"github.com/janmarkuslanger/ssgo/page"
 	"github.com/janmarkuslanger/ssgo/rendering"
+	"github.com/janmarkuslanger/ssgo/task"
 	"github.com/janmarkuslanger/ssgo/writer"
 )
 
 type Builder struct {
-	OutputDir string
-	Pages     []page.Generator
-	Writer    writer.Writer
-	Renderer  rendering.Renderer
+	OutputDir   string
+	Pages       []page.Generator
+	Writer      writer.Writer
+	Renderer    rendering.Renderer
+	BeforeTasks []task.Task
+	AfterTasks  []task.Task
+}
+
+func (b Builder) runTasks(tasks []task.Task) error {
+	for _, t := range tasks {
+		err := t.Run(task.TaskContext{
+			OutputDir: b.OutputDir,
+		})
+
+		if err != nil && t.IsCritical() {
+			return fmt.Errorf("failed to run tasks: %w", err)
+		}
+
+		if err != nil {
+			fmt.Printf("warning: task failed to run: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func (b Builder) Build() error {
+	if err := b.runTasks(b.BeforeTasks); err != nil {
+		return err
+	}
+
 	for _, g := range b.Pages {
 		pages, err := g.GeneratePageInstances()
 		if err != nil {
@@ -35,6 +60,10 @@ func (b Builder) Build() error {
 				return fmt.Errorf("failed to write page %s: %w", p.Path, err)
 			}
 		}
+	}
+
+	if err := b.runTasks(b.AfterTasks); err != nil {
+		return err
 	}
 
 	return nil
