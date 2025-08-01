@@ -21,5 +21,5 @@ func (w *FileWriter) Write(path string, content string) error {
 		return err
 	}
 
-	return os.WriteFile(path, []byte(content), FilePerm)
+	return os.WriteFile(path+".html", []byte(content), FilePerm)
 }
