@@ -2,11 +2,13 @@ package builder_test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/janmarkuslanger/ssgo/builder"
 	"github.com/janmarkuslanger/ssgo/page"
 	"github.com/janmarkuslanger/ssgo/rendering"
+	"github.com/janmarkuslanger/ssgo/task"
 )
 
 type MockWriter struct{}
@@ -33,6 +35,36 @@ func (r MockRendererFail) Render(ctx rendering.RenderContext) (output string, er
 	return "", errors.New("something went wrong")
 }
 
+type MockTask struct{}
+
+func (t MockTask) Run(ctx task.TaskContext) error {
+	return nil
+}
+
+func (t MockTask) IsCritical() bool {
+	return true
+}
+
+type MockTaskFail struct{}
+
+func (t MockTaskFail) Run(ctx task.TaskContext) error {
+	return errors.New("task fails!")
+}
+
+func (t MockTaskFail) IsCritical() bool {
+	return false
+}
+
+type MockTaskFailCitical struct{}
+
+func (t MockTaskFailCitical) Run(ctx task.TaskContext) error {
+	return errors.New("task fails!")
+}
+
+func (t MockTaskFailCitical) IsCritical() bool {
+	return true
+}
+
 func TestBuilder_Build_Success(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
@@ -53,6 +85,140 @@ func TestBuilder_Build_Success(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestBuilder_Build_Tasks_NoErr(t *testing.T) {
+	b := builder.Builder{
+		OutputDir: "/test",
+		Writer:    MockWriter{},
+		Pages: []page.Generator{
+			{
+				Config: page.Config{
+					Renderer: MockRenderer{},
+					GetPaths: func() []string {
+						return []string{"a", "b"}
+					},
+				},
+			},
+		},
+		BeforeTasks: []task.Task{
+			MockTask{},
+		},
+		AfterTasks: []task.Task{
+			MockTask{},
+		},
+	}
+
+	err := b.Build()
+
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestBuilder_Build_Tasks_Err(t *testing.T) {
+	b := builder.Builder{
+		OutputDir: "/test",
+		Writer:    MockWriter{},
+		Pages: []page.Generator{
+			{
+				Config: page.Config{
+					Renderer: MockRenderer{},
+					GetPaths: func() []string {
+						return []string{"a", "b"}
+					},
+				},
+			},
+		},
+		BeforeTasks: []task.Task{
+			MockTask{},
+			MockTaskFail{},
+		},
+		AfterTasks: []task.Task{
+			MockTask{},
+			MockTaskFail{},
+		},
+	}
+
+	err := b.Build()
+
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestBuilder_Build_TasksBefore_FatalErr(t *testing.T) {
+	b := builder.Builder{
+		OutputDir: "/test",
+		Writer:    MockWriter{},
+		Pages: []page.Generator{
+			{
+				Config: page.Config{
+					Renderer: MockRenderer{},
+					GetPaths: func() []string {
+						return []string{"a", "b"}
+					},
+				},
+			},
+		},
+		BeforeTasks: []task.Task{
+			MockTask{},
+			MockTaskFail{},
+			MockTaskFailCitical{},
+		},
+		AfterTasks: []task.Task{
+			MockTask{},
+			MockTaskFail{},
+		},
+	}
+
+	err := b.Build()
+
+	if err == nil {
+		t.Error("expected error")
+	}
+
+	expected := "failed to run tasks:"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Errorf("expected error %v but got %q", expected, err.Error())
+	}
+}
+
+func TestBuilder_Build_TasksAfter_FatalErr(t *testing.T) {
+	b := builder.Builder{
+		OutputDir: "/test",
+		Writer:    MockWriter{},
+		Pages: []page.Generator{
+			{
+				Config: page.Config{
+					Renderer: MockRenderer{},
+					GetPaths: func() []string {
+						return []string{"a", "b"}
+					},
+				},
+			},
+		},
+		BeforeTasks: []task.Task{
+			MockTask{},
+			MockTaskFail{},
+		},
+		AfterTasks: []task.Task{
+			MockTask{},
+			MockTaskFail{},
+			MockTaskFailCitical{},
+		},
+	}
+
+	err := b.Build()
+
+	if err == nil {
+		t.Error("expected error")
+	}
+
+	expected := "failed to run tasks:"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Errorf("expected error %v but got %q", expected, err.Error())
 	}
 }
 

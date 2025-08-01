@@ -232,6 +232,54 @@ The built-in `HTMLRenderer` supports:
 
 ---
 
+## ⚙️ Tasks
+
+You can register custom tasks to be executed **before** or **after** the build.  
+A task must implement the following interface:
+
+```go
+type Task interface {
+	Run(ctx TaskContext) error
+	IsCritical() bool
+}
+
+type TaskContext struct {
+	OutputDir string
+}
+```
+
+This allows you to perform custom logic like preparing directories, copying assets, or generating extra files.
+
+### 🧪 Example
+
+```go
+type PrintTask struct{}
+
+func (PrintTask) Run(ctx task.TaskContext) error {
+	fmt.Println("Building to:", ctx.OutputDir)
+	return nil
+}
+
+func (PrintTask) IsCritical() bool {
+	return false
+}
+```
+
+Register the task:
+
+```go
+builder := builder.Builder{
+	OutputDir: "public",
+	Writer:    &writer.FileWriter{},
+	Pages:     []page.Generator{...},
+	BeforeTasks: []task.Task{
+		PrintTask{},
+	},
+}
+```
+
+---
+
 ## 📖 License
 
 MIT © [Jan Markus Langer](https://github.com/janmarkuslanger)

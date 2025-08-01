@@ -3,6 +3,7 @@ package writer
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -21,5 +22,9 @@ func (w *FileWriter) Write(path string, content string) error {
 		return err
 	}
 
-	return os.WriteFile(path+".html", []byte(content), FilePerm)
+	if !strings.HasSuffix(path, ".html") {
+		path += ".html"
+	}
+
+	return os.WriteFile(path, []byte(content), FilePerm)
 }
