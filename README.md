@@ -38,6 +38,8 @@ Or download directly:
 
 In this example we use the default implementation of the renderer (https://pkg.go.dev/html/template) and the writer. 
 
+If you use the default html renderer. Your root template must start with a `{{ define "root" }}`.
+
 Create the following structure:
 
 ```
@@ -66,6 +68,9 @@ import (
 func main() {
 	renderer := rendering.HTMLRenderer{
 		Layout: []string{"templates/layout.html"},
+		CustomFuncs: template.FuncMap{
+			"upper": strings.ToUpper,
+		},
 	}
 
 	posts := map[string]map[string]any{
@@ -111,13 +116,16 @@ func main() {
 ### templates/layout.html
 
 ```html
+{{ define "root" }}
 <!DOCTYPE html>
 <html>
   <head><title>{{ .Title }}</title></head>
   <body>
+  	<h1>{{ upper .Title }}</h1>
     {{ template "content" . }}
   </body>
 </html>
+{{ end }}
 ```
 
 ### templates/blog.html
@@ -229,6 +237,7 @@ The built-in `HTMLRenderer` supports:
 - Go templates (`html/template`)
 - Layouts (via `[]string`)
 - Custom data injection
+- Custom template funcs
 
 ---
 
