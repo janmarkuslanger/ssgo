@@ -1,6 +1,7 @@
 package taskutil
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -8,88 +9,93 @@ import (
 	"github.com/janmarkuslanger/ssgo/task"
 )
 
-type FileSystem interface {
-	Open(string) (*os.File, error)
-	Create(string) (*os.File, error)
-	MkdirAll(string, os.FileMode) error
+func NewCopyTask(sourceDir string, outputSubDir string, pathResolver PathResolver) CopyTask {
+	if pathResolver == nil {
+		pathResolver = defaultPathResolver{}
+	}
+
+	return CopyTask{
+		SourceDir:    sourceDir,
+		OutputSubDir: outputSubDir,
+		pathResolver: pathResolver,
+	}
 }
 
-type Copier interface {
-	Copy(dst io.Writer, src io.Reader) (int64, error)
+type PathResolver interface {
+	Abs(path string) (string, error)
+}
+
+type defaultPathResolver struct{}
+
+func (p defaultPathResolver) Abs(path string) (string, error) {
+	return filepath.Abs(path)
 }
 
 type CopyTask struct {
-	sourceDir    string
-	outputSubdir string
-	fs           FileSystem
-	copier       Copier
+	SourceDir    string
+	OutputSubDir string
+	pathResolver PathResolver
 }
 
-func NewCopyTask(sourceDir, outputSubdir string, fs FileSystem, copier Copier) CopyTask {
-	if fs == nil {
-		fs = defaultFS{}
+func (c *CopyTask) Run(ctx task.TaskContext) error {
+	if c.pathResolver == nil {
+		return fmt.Errorf("pathresolver not defined")
 	}
-	if copier == nil {
-		copier = defaultCopier{}
+
+	srcDirAbs, err := c.pathResolver.Abs(c.SourceDir)
+	if err != nil {
+		return fmt.Errorf("failed to resolve source dir: %w", err)
 	}
-	return CopyTask{
-		sourceDir:    sourceDir,
-		outputSubdir: outputSubdir,
-		fs:           fs,
-		copier:       copier,
+
+	outDir := ctx.OutputDir
+	if c.OutputSubDir != "" {
+		outDir = filepath.Join(outDir, c.OutputSubDir)
 	}
-}
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
 
-type defaultFS struct{}
-
-func (defaultFS) Open(name string) (*os.File, error)           { return os.Open(name) }
-func (defaultFS) Create(name string) (*os.File, error)         { return os.Create(name) }
-func (defaultFS) MkdirAll(path string, perm os.FileMode) error { return os.MkdirAll(path, perm) }
-
-type defaultCopier struct{}
-
-func (defaultCopier) Copy(dst io.Writer, src io.Reader) (int64, error) {
-	return io.Copy(dst, src)
-}
-
-func (t CopyTask) Run(ctx task.TaskContext) error {
-	return filepath.Walk(t.sourceDir, func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(srcDirAbs, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return err
+			return fmt.Errorf("walk error: %w", err)
 		}
+		relPath, _ := filepath.Rel(srcDirAbs, path)
+		targetPath := filepath.Join(outDir, relPath)
 
 		if info.IsDir() {
-			return nil
+			return os.MkdirAll(targetPath, info.Mode())
 		}
 
-		relPath, err := filepath.Rel(t.sourceDir, path)
-		if err != nil {
-			return err
-		}
-
-		dest := filepath.Join(ctx.OutputDir, t.outputSubdir, relPath)
-
-		if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
-			return err
-		}
-
-		srcFile, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer srcFile.Close()
-
-		dstFile, err := os.Create(dest)
-		if err != nil {
-			return err
-		}
-		defer dstFile.Close()
-
-		_, err = t.copier.Copy(dstFile, srcFile)
-		return err
+		return CopyFile(path, targetPath, info.Mode())
 	})
 }
 
-func (t CopyTask) IsCritical() bool {
-	return true
+func (c *CopyTask) IsCritical() bool {
+	return false
+}
+
+type CopyFunc func(dst io.Writer, src io.Reader) (int64, error)
+
+func CopyFile(src, dest string, mode os.FileMode) error {
+	return CopyFileWith(src, dest, mode, io.Copy)
+}
+
+func CopyFileWith(src, dest string, mode os.FileMode, copier CopyFunc) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("open src error: %w", err)
+	}
+	defer srcFile.Close()
+
+	destFile, err := os.Create(dest)
+	if err != nil {
+		return fmt.Errorf("create dest error: %w", err)
+	}
+	defer destFile.Close()
+
+	if _, err := copier(destFile, srcFile); err != nil {
+		return fmt.Errorf("copy error: %w", err)
+	}
+
+	return os.Chmod(dest, mode)
 }
