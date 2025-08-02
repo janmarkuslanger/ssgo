@@ -6,7 +6,8 @@ import (
 )
 
 type HTMLRenderer struct {
-	Layout []string
+	CustomFuncs template.FuncMap
+	Layout      []string
 }
 
 func (r HTMLRenderer) Render(ctx RenderContext) (output string, err error) {
@@ -14,7 +15,8 @@ func (r HTMLRenderer) Render(ctx RenderContext) (output string, err error) {
 	files = append(files, r.Layout...)
 	files = append(files, ctx.Template)
 
-	tmpl, err := template.ParseFiles(files...)
+	tmpl := template.New("root").Funcs(r.CustomFuncs)
+	tmpl, err = tmpl.ParseFiles(files...)
 	if err != nil {
 		return "", err
 	}
