@@ -280,6 +280,67 @@ builder := builder.Builder{
 
 ---
 
+
+### 📁 CopyTask (built-in)
+
+`CopyTask` is a built-in task in the `taskutil` package that copies all files from a given `SourceDir` into the builder's `OutputDir`.  
+Optionally, you can specify an `OutputSubDir` to copy into a subfolder.
+
+**Always use the constructor** `NewCopyTask(...)` – do not initialize the struct manually with `{}`.
+
+#### ✅ Example: Copy static assets
+
+Suppose you have a `static/` directory with images or icons you want to copy into the output folder during the build:
+
+```go
+import (
+    "github.com/janmarkuslanger/ssgo/taskutil"
+)
+
+copyStatic := taskutil.NewCopyTask("static", "", nil)
+```
+
+To copy into a subfolder like `public/assets/`:
+
+```go
+copyStatic := taskutil.NewCopyTask("static", "assets", nil)
+```
+
+You can also inject a custom `PathResolver` (mainly for testing):
+
+```go
+mockResolver := myMockResolver{}
+copyStatic := taskutil.NewCopyTask("static", "", mockResolver)
+```
+
+#### 🔌 Registering as a `BeforeTask`
+
+```go
+builder := builder.Builder{
+    OutputDir: "public",
+    Writer:    &writer.FileWriter{},
+    Pages:     []page.Generator{...},
+    BeforeTasks: []task.Task{
+        copyStatic,
+    },
+}
+```
+
+For example, `static/logo.png` will be copied to `public/logo.png`  
+(or to `public/assets/logo.png` if `OutputSubDir` is set to `assets`).
+
+#### 📦 Constructor
+
+```go
+func NewCopyTask(sourceDir string, outputSubDir string, pathResolver PathResolver) CopyTask
+```
+
+- `sourceDir`: Path to the source folder
+- `outputSubDir`: Optional subfolder inside `OutputDir` (use `""` to copy directly into `OutputDir`)
+- `pathResolver`: Optional path resolver (if `nil`, a default implementation will be used)
+
+---
+
 ## 📖 License
 
 MIT © [Jan Markus Langer](https://github.com/janmarkuslanger)
