@@ -23,12 +23,17 @@ func NewCopyTask(sourceDir string, outputSubDir string, pathResolver PathResolve
 
 type PathResolver interface {
 	Abs(path string) (string, error)
+	Rel(basepath string, targpath string) (string, error)
 }
 
 type defaultPathResolver struct{}
 
 func (p defaultPathResolver) Abs(path string) (string, error) {
 	return filepath.Abs(path)
+}
+
+func (p defaultPathResolver) Rel(basepath string, targpath string) (string, error) {
+	return filepath.Rel(basepath, targpath)
 }
 
 type CopyTask struct {
@@ -59,7 +64,11 @@ func (c *CopyTask) Run(ctx task.TaskContext) error {
 		if err != nil {
 			return fmt.Errorf("walk error: %w", err)
 		}
-		relPath, _ := filepath.Rel(srcDirAbs, path)
+		relPath, err := c.pathResolver.Rel(srcDirAbs, path)
+		if err != nil {
+			return fmt.Errorf("failed to get relative path from %s to %s: %w", srcDirAbs, path, err)
+		}
+
 		targetPath := filepath.Join(outDir, relPath)
 
 		if info.IsDir() {

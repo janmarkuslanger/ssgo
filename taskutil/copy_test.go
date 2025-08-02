@@ -24,9 +24,23 @@ func createTempFile(t *testing.T, dir, name, content string) string {
 	return fullPath
 }
 
-type PathResolverFail struct{}
+type PathResolverAbsFail struct{}
 
-func (p PathResolverFail) Abs(path string) (string, error) {
+func (p PathResolverAbsFail) Abs(path string) (string, error) {
+	return "", errors.New("Fail")
+}
+
+func (p PathResolverAbsFail) Rel(basepath string, targpath string) (string, error) {
+	return filepath.Rel(basepath, targpath)
+}
+
+type PathResolverRelFail struct{}
+
+func (p PathResolverRelFail) Abs(path string) (string, error) {
+	return filepath.Abs(path)
+}
+
+func (p PathResolverRelFail) Rel(basepath string, targpath string) (string, error) {
 	return "", errors.New("Fail")
 }
 
@@ -47,7 +61,22 @@ func TestCopyTask_New(t *testing.T) {
 func TestCopyTask_CustomPathResolver(t *testing.T) {
 	sDir := "src"
 	dirName := "name"
-	taskutil.NewCopyTask(sDir, dirName, PathResolverFail{})
+	taskutil.NewCopyTask(sDir, dirName, PathResolverAbsFail{})
+}
+
+func TestCopyTask_MissingPathResolver(t *testing.T) {
+	copyTask := taskutil.CopyTask{}
+	err := copyTask.Run(task.TaskContext{})
+
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+
+	expected := "pathresolver not defined"
+	msg := err.Error()
+	if !strings.Contains(msg, expected) {
+		t.Fatalf("expected msg %v but got %q", expected, msg)
+	}
 }
 
 func TestCopyTask_Run(t *testing.T) {
@@ -93,7 +122,7 @@ func TestCopyTask_Run_NoSubdir(t *testing.T) {
 }
 
 func TestCopyTask_IsCritical(t *testing.T) {
-	copyTask := &taskutil.CopyTask{}
+	copyTask := taskutil.NewCopyTask("", "", nil)
 	if copyTask.IsCritical() != false {
 		t.Errorf("expected IsCritical to return false")
 	}
@@ -101,7 +130,7 @@ func TestCopyTask_IsCritical(t *testing.T) {
 
 func TestCopyTask_Run_ErrorOnAbsPath(t *testing.T) {
 	srcDir := t.TempDir()
-	copyTask := taskutil.NewCopyTask(srcDir, "", PathResolverFail{})
+	copyTask := taskutil.NewCopyTask(srcDir, "", PathResolverAbsFail{})
 	err := copyTask.Run(task.TaskContext{OutputDir: t.TempDir()})
 	if err == nil {
 		t.Errorf("expected error on invalid source path")
@@ -155,7 +184,7 @@ func TestCopyTask_Run_ErrorOnFileOpen(t *testing.T) {
 	}
 	defer os.Chmod(file, 0644)
 
-	copyTask := &taskutil.CopyTask{SourceDir: srcDir}
+	copyTask := taskutil.NewCopyTask(srcDir, "", nil)
 	err := copyTask.Run(task.TaskContext{OutputDir: outDir})
 	if err == nil {
 		t.Errorf("expected error on file open")
@@ -179,7 +208,7 @@ func TestCopyTask_Run_ErrorOnCreateDest(t *testing.T) {
 	}
 	defer os.Chmod(filepath.Dir(targetFile), 0755)
 
-	copyTask := &taskutil.CopyTask{SourceDir: srcDir}
+	copyTask := taskutil.NewCopyTask(srcDir, "", nil)
 	err := copyTask.Run(task.TaskContext{OutputDir: outDir})
 	if err == nil {
 		t.Errorf("expected error on create dest")
@@ -191,7 +220,7 @@ func TestCopyTask_Run_ErrorOnCopy(t *testing.T) {
 	outDir := t.TempDir()
 
 	createTempFile(t, srcDir, "fail.txt", "abc")
-	copyTask := &taskutil.CopyTask{SourceDir: srcDir}
+	copyTask := taskutil.NewCopyTask(srcDir, "", nil)
 
 	destDir := filepath.Join(outDir, "fail.txt")
 	if err := os.MkdirAll(filepath.Dir(destDir), 0755); err != nil {
@@ -226,6 +255,25 @@ func TestCopyTask_Run_ErrorOnChmod(t *testing.T) {
 	err := copyTask.Run(task.TaskContext{OutputDir: outDir})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestCopyTask_Run_ErrorOnRelPath(t *testing.T) {
+	srcDir := t.TempDir()
+	destDir := t.TempDir()
+
+	copyTask := taskutil.NewCopyTask(srcDir, destDir, PathResolverRelFail{})
+
+	err := copyTask.Run(task.TaskContext{})
+	if err == nil {
+		t.Errorf("expected rel path error")
+		return
+	}
+
+	msg := err.Error()
+	expected := "failed to get relative path from"
+	if !strings.HasPrefix(msg, expected) {
+		t.Errorf("expected err msg %q but got %q", expected, msg)
 	}
 }
 
