@@ -6,7 +6,7 @@ import (
 	"github.com/janmarkuslanger/ssgo/builder"
 )
 
-func StartServer(builder builder.Builder) {
+func NewServer(builder builder.Builder) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	for _, g := range builder.Pages {
@@ -19,5 +19,10 @@ func StartServer(builder builder.Builder) {
 		}
 	}
 
+	return mux
+}
+
+func StartServer(builder builder.Builder) {
+	mux := NewServer(builder)
 	http.ListenAndServe(":8080", mux)
 }
