@@ -23,6 +23,26 @@ type Generator struct {
 	Config Config
 }
 
+func (g Generator) GeneratePageInstance(path string) Page {
+	data := make(map[string]any)
+	params := ExtractParams(g.Config.Pattern, path)
+
+	if g.Config.GetData != nil {
+		data = g.Config.GetData(PagePayload{
+			Path:   path,
+			Params: params,
+		})
+	}
+
+	return Page{
+		Path:     path,
+		Params:   params,
+		Data:     data,
+		Template: g.Config.Template,
+		Renderer: g.Config.Renderer,
+	}
+}
+
 func (g Generator) GeneratePageInstances() ([]Page, error) {
 	pages := []Page{}
 
@@ -31,24 +51,7 @@ func (g Generator) GeneratePageInstances() ([]Page, error) {
 	}
 
 	for _, path := range g.Config.GetPaths() {
-		data := make(map[string]any)
-		params := ExtractParams(g.Config.Pattern, path)
-
-		if g.Config.GetData != nil {
-			data = g.Config.GetData(PagePayload{
-				Path:   path,
-				Params: params,
-			})
-		}
-
-		p := Page{
-			Path:     path,
-			Params:   params,
-			Data:     data,
-			Template: g.Config.Template,
-			Renderer: g.Config.Renderer,
-		}
-
+		p := g.GeneratePageInstance(path)
 		pages = append(pages, p)
 	}
 
