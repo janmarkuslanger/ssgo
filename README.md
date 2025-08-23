@@ -350,6 +350,11 @@ func NewCopyTask(sourceDir string, outputSubDir string, pathResolver PathResolve
 
 ---
 
+## 🧪 Dev Server
+
+You can create a dev server. You need the `NewServer` function from the `dev` package.
+The function expects an builder `builder.Builder` as a param. 
+
 ## 📖 License
 
 MIT © [Jan Markus Langer](https://github.com/janmarkuslanger)
