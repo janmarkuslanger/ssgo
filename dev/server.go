@@ -2,7 +2,6 @@ package dev
 
 import (
 	"net/http"
-	"path/filepath"
 
 	"github.com/janmarkuslanger/ssgo/builder"
 )
@@ -26,13 +25,13 @@ func NewServer(builder builder.Builder) http.Handler {
 		}
 	}
 
+	fs := http.FileServer(http.Dir(builder.OutputDir))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := pagePaths[r.URL.Path]; ok {
 			mux.ServeHTTP(w, r)
 			return
 		}
-
-		http.ServeFile(w, r, filepath.Join(builder.OutputDir, filepath.Clean(r.URL.Path)))
+		fs.ServeHTTP(w, r)
 	})
 }
 
