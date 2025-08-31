@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 	"github.com/janmarkuslanger/ssgo/dev"
 )
 
-func makeTempTemplates(t *testing.T) (layoutPath, tplPath string) {
+func makeTempTemplates(t *testing.T) (string, string) {
 	t.Helper()
 	dir := t.TempDir()
 	layout := `{{define "root"}}{{template "content" .}}{{end}}`
@@ -30,6 +31,7 @@ func makeTempTemplates(t *testing.T) (layoutPath, tplPath string) {
 	if err := os.WriteFile(tp, []byte(tpl), 0o600); err != nil {
 		t.Fatal(err)
 	}
+
 	return lp, tp
 }
 
@@ -51,8 +53,15 @@ func makeTestBuilder(t *testing.T) builder.Builder {
 		}
 	}
 
+	output := t.TempDir()
+
+	cp := filepath.Join(output, "app.css")
+	if err := os.WriteFile(cp, []byte("body{background:#fff}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
 	return builder.Builder{
-		OutputDir: t.TempDir(),
+		OutputDir: output,
 		Writer:    &writer.FileWriter{},
 		Pages: []page.Generator{
 			gen("/", "home"),
@@ -108,6 +117,23 @@ func TestNewServer_RendersRegisteredPaths(t *testing.T) {
 			t.Fatalf("GET %s: expected %q, got %q", c.path, c.expected, rec.Body.String())
 		}
 	}
+
+	req := httptest.NewRequest(http.MethodGet, "/app.css", nil)
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for existing asset, got %d", rec.Code)
+	}
+	if got := rec.Body.String(); got != "body{background:#fff}" {
+		t.Fatalf("unexpected asset body: %q", got)
+	}
+
+	if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "text/css") {
+		t.Fatalf("expected Content-Type to contain text/css, got %q", ct)
+	}
+
 }
 
 func TestNewServer_PanicsOnRenderError(t *testing.T) {
