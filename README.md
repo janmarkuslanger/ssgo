@@ -182,7 +182,9 @@ A minimal blog generator:
 package main
 
 import (
+    "html/template"
     "github.com/janmarkuslanger/ssgo/builder"
+    "github.com/janmarkuslanger/ssgo/dev"
     "github.com/janmarkuslanger/ssgo/page"
     "github.com/janmarkuslanger/ssgo/rendering"
     "github.com/janmarkuslanger/ssgo/task"
@@ -210,7 +212,7 @@ func main() {
             },
             Renderer: rendering.HTMLRenderer{
                 Layout: []string{"templates/layout.html"},
-                CustomFuncs: map[string]any{
+                CustomFuncs: template.FuncMap{
                     "upper": strings.ToUpper,
                 },
             },

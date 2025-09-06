@@ -69,7 +69,7 @@ func TestBuilder_Build_Success(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			{
 				Config: page.Config{
 					Renderer: MockRenderer{},
@@ -92,7 +92,7 @@ func TestBuilder_Build_Tasks_NoErr(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			{
 				Config: page.Config{
 					Renderer: MockRenderer{},
@@ -121,7 +121,7 @@ func TestBuilder_Build_Tasks_Err(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			{
 				Config: page.Config{
 					Renderer: MockRenderer{},
@@ -152,7 +152,7 @@ func TestBuilder_Build_TasksBefore_FatalErr(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			{
 				Config: page.Config{
 					Renderer: MockRenderer{},
@@ -189,7 +189,7 @@ func TestBuilder_Build_TasksAfter_FatalErr(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			{
 				Config: page.Config{
 					Renderer: MockRenderer{},
@@ -226,7 +226,7 @@ func TestBuilder_Build_FailingGeneratePageInstances(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			{
 				Config: page.Config{},
 			},
@@ -244,7 +244,7 @@ func TestBuilder_Build_FailingWriter(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriterFail{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			{
 				Config: page.Config{
 					Renderer: MockRenderer{},
@@ -267,7 +267,7 @@ func TestBuilder_Build_FailingRenderer(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			{
 				Config: page.Config{
 					Renderer: MockRendererFail{},

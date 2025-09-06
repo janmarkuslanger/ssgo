@@ -76,7 +76,7 @@ func makeTestBuilder(t *testing.T) builder.Builder {
 	return builder.Builder{
 		OutputDir: output,
 		Writer:    &writer.FileWriter{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			gen("/", "home"),
 			gen("/about", "about"),
 		},
@@ -101,9 +101,9 @@ func makeBrokenBuilder(t *testing.T) builder.Builder {
 	}
 
 	return builder.Builder{
-		OutputDir: t.TempDir(),
-		Writer:    &writer.FileWriter{},
-		Pages:     []page.Generator{gen("/broken")},
+		OutputDir:  t.TempDir(),
+		Writer:     &writer.FileWriter{},
+		Generators: []page.Generator{gen("/broken")},
 	}
 }
 
@@ -130,7 +130,7 @@ func makeTestBuilderWithBrokenBeforeTask(t *testing.T) builder.Builder {
 	return builder.Builder{
 		OutputDir: output,
 		Writer:    &writer.FileWriter{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			gen("/test", "Hello"),
 		},
 		BeforeTasks: []task.Task{
@@ -165,7 +165,7 @@ func makeTestBuilderWithBrokenAfterTask(t *testing.T) builder.Builder {
 	return builder.Builder{
 		OutputDir: output,
 		Writer:    &writer.FileWriter{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			gen("/test", "Hello"),
 		},
 		AfterTasks: []task.Task{

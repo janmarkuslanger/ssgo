@@ -12,7 +12,7 @@ import (
 
 type Builder struct {
 	OutputDir   string
-	Pages       []page.Generator
+	Generators  []page.Generator
 	Writer      writer.Writer
 	Renderer    rendering.Renderer
 	BeforeTasks []task.Task
@@ -42,7 +42,7 @@ func (b Builder) Build() error {
 		return err
 	}
 
-	for _, g := range b.Pages {
+	for _, g := range b.Generators {
 		pages, err := g.GeneratePageInstances()
 		if err != nil {
 			return fmt.Errorf("failed to generate pages: %w", err)
