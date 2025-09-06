@@ -1,7 +1,7 @@
 <p align="center"><img src="/logo.svg" alt="Logo" width="200" /></p>
 
 <h1 align="center">SSGO</h1>
-<p align="center">SSGO is a minimal **static site generator** written in Go. It is designed for **clarity, explicit APIs, and flexibility**.</p>
+<p align="center">SSGO is a minimal **static site generator** written in Go. It is designed for <strong>clarity, explicit APIs, and flexibility</strong>.</p>
 
 <p align="center">
   <a href="https://codecov.io/gh/janmarkuslanger/ssgo"><img src="https://codecov.io/gh/janmarkuslanger/ssgo/graph/badge.svg?token=XUZ7Y1VN3T" alt="Code coverage"></a>
