@@ -19,7 +19,7 @@ type Builder struct {
 	AfterTasks  []task.Task
 }
 
-func (b Builder) runTasks(tasks []task.Task) error {
+func (b Builder) RunTasks(tasks []task.Task) error {
 	for _, t := range tasks {
 		err := t.Run(task.TaskContext{
 			OutputDir: b.OutputDir,
@@ -38,7 +38,7 @@ func (b Builder) runTasks(tasks []task.Task) error {
 }
 
 func (b Builder) Build() error {
-	if err := b.runTasks(b.BeforeTasks); err != nil {
+	if err := b.RunTasks(b.BeforeTasks); err != nil {
 		return err
 	}
 
@@ -51,7 +51,7 @@ func (b Builder) Build() error {
 		for _, p := range pages {
 			content, err := p.Render()
 			if err != nil {
-				// TODO: make configurable if it should continue if single page faileds
+				// TODO: make configurable if it should continue if single page fails
 				return fmt.Errorf("failed to render page %s: %w", p.Path, err)
 			}
 
@@ -62,7 +62,7 @@ func (b Builder) Build() error {
 		}
 	}
 
-	if err := b.runTasks(b.AfterTasks); err != nil {
+	if err := b.RunTasks(b.AfterTasks); err != nil {
 		return err
 	}
 
