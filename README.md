@@ -1,6 +1,7 @@
 <p align="center"><img src="/logo.svg" alt="Logo" width="200" /></p>
+
 <h1 align="center">SSGO</h1>
-<p align="center">Simple, fast and extendable static site generator.</p>
+<p align="center">SSGO is a minimal **static site generator** written in Go. It is designed for <strong>clarity, explicit APIs, and flexibility</strong>.</p>
 
 <p align="center">
   <a href="https://codecov.io/gh/janmarkuslanger/ssgo"><img src="https://codecov.io/gh/janmarkuslanger/ssgo/graph/badge.svg?token=XUZ7Y1VN3T" alt="Code coverage"></a>
@@ -12,199 +13,112 @@
 
 ---
 
-## ✨ What is SSGO?
+## ✨ Features
 
-**SSGO** is a minimal, Go-native static site generator focused on:
-
-- 🧩 *Composability* – every page is generated via a clear data + template pipeline
-- ⚡ *Simplicity* – no magic or custom config formats
-- 🔧 *Extensibility* – plug in your own rendering or writing logic
+- **Explicit API**: You control paths, data, templates, and output.  
+- **Pluggable renderers**: Default is `html/template`, but you can implement your own.  
+- **Flexible writers**: Write to disk, memory, S3, or anywhere.  
+- **Tasks**: Run hooks before/after the build (asset copying, cleanup, etc.).  
+- **Dev server**: Serve your build locally during development.  
 
 ---
 
 ## 📦 Installation
 
-Install via:
-
 ```bash
-go get github.com/janmarkuslanger/ssgo
-```
-
-Or download directly:  
-[⬇ Download latest ZIP](https://github.com/janmarkuslanger/ssgo/archive/refs/heads/main.zip)
-
----
-
-## 🚀 Minimal Example
-
-In this example we use the default implementation of the renderer (https://pkg.go.dev/html/template) and the writer. 
-
-If you use the default html renderer. Your root template must start with a `{{ define "root" }}`.
-
-Create the following structure:
-
-```
-your-project/
-├── main.go
-├── templates/
-│   ├── layout.html
-│   └── blog.html
-└── public/ (generated after running)
-```
-
-### main.go
-
-```go
-package main
-
-import (
-	"log"
-
-	"github.com/janmarkuslanger/ssgo/builder"
-	"github.com/janmarkuslanger/ssgo/page"
-	"github.com/janmarkuslanger/ssgo/rendering"
-	"github.com/janmarkuslanger/ssgo/writer"
-)
-
-func main() {
-	renderer := rendering.HTMLRenderer{
-		Layout: []string{"templates/layout.html"},
-		CustomFuncs: template.FuncMap{
-			"upper": strings.ToUpper,
-		},
-	}
-
-	posts := map[string]map[string]any{
-		"hello-world": {
-			"Title":   "Hello World",
-			"Content": "Welcome to my blog!",
-		},
-		"second-post": {
-			"Title":   "Second Post",
-			"Content": "Another blog entry.",
-		},
-	}
-
-	generator := page.Generator{
-		Config: page.Config{
-			Pattern:  "/blog/:slug",
-			Template: "templates/blog.html",
-			GetPaths: func() []string {
-				return []string{"/blog/hello-world", "/blog/second-post"}
-			},
-			GetData: func(p page.PagePayload) map[string]any {
-				return posts[p.Params["slug"]]
-			},
-			Renderer: renderer,
-		},
-	}
-
-	b := builder.Builder{
-		OutputDir: "public",
-		Writer:    &writer.FileWriter{},
-		Pages: []page.Generator{
-			generator,
-		},
-	}
-
-	if err := b.Build(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-```
-
-### templates/layout.html
-
-```html
-{{ define "root" }}
-<!DOCTYPE html>
-<html>
-  <head><title>{{ .Title }}</title></head>
-  <body>
-  	<h1>{{ upper .Title }}</h1>
-    {{ template "content" . }}
-  </body>
-</html>
-{{ end }}
-```
-
-### templates/blog.html
-
-```html
-{{ define "content" }}
-<h1>{{ .Title }}</h1>
-<p>{{ .Content }}</p>
-{{ end }}
-```
-
-### Run it
-
-```bash
-go run main.go
-```
-
-→ Two files will be generated:
-
-```
-public/
-└── blog/
-    ├── hello-world
-    └── second-post
+go get github.com/janmarkuslanger/ssgo@latest
 ```
 
 ---
 
-## 🧱 Concepts
+## 🔑 Core Concepts & API
 
-### 🔨 Builder
+### Builder
 
-Orchestrates the generation of pages and writes them to disk:
+The `builder.Builder` orchestrates everything.
 
 ```go
 type Builder struct {
-	OutputDir  string
-	Writer     Writer
-	Generators []page.Generator
+    OutputDir   string
+    Writer      writer.Writer
+    Generators  []page.Generator
+    BeforeTasks []task.Task
+    AfterTasks  []task.Task
 }
+
+func (b *Builder) Build() error
 ```
 
-### 📄 Generator / Config
-
-Each `page.Generator` is driven by a `Config`:
-
-```go
-type Config struct {
-	Template string
-	Pattern  string
-	GetPaths func() []string
-	GetData  func(PagePayload) map[string]any
-	Renderer rendering.Renderer
-}
-```
-
-This allows dynamic paths with params like `/blog/:slug`.
-
-### 📦 PagePayload
-
-Passed to `GetData` so you can access dynamic URL parameters:
-
-```go
-type PagePayload struct {
-	Path   string
-	Params map[string]string
-}
-```
+- **`OutputDir`** – where generated files go.  
+- **`Writer`** – implements how files are written (default: `writer.FileWriter`).  
+- **`Generators`** – list of page generators.  
+- **`BeforeTasks` / `AfterTasks`** – tasks to run before/after the build.  
+- **`Build()`** – executes the full build.  
 
 ---
 
-## 🖋 Writer
+### Pages & Generators
 
-The `Writer` interface is used to persist rendered output:
+Define what content to generate with a `page.Config`.  
+A generator combines a pattern, template, and data.
+
+```go
+type Config struct {
+    Template string
+    Pattern  string
+    GetPaths func() []string
+    GetData  func(PagePayload) map[string]any
+    Renderer rendering.Renderer
+}
+
+type PagePayload struct {
+    Path   string
+    Params map[string]string
+}
+```
+
+- **`Template`** – path to the template file.  
+- **`Pattern`** – route pattern (supports params, e.g. `/blog/:slug`).  
+- **`GetPaths()`** – returns all paths to generate.  
+- **`GetData(payload)`** – returns data for each path.  
+- **`Renderer`** – responsible for rendering (default: `HTMLRenderer`).  
+
+---
+
+### Rendering
+
+Abstracted by the `rendering.Renderer` interface:
+
+```go
+type Renderer interface {
+    Render(RenderContext) (string, error)
+}
+```
+
+#### HTMLRenderer (default)
+
+```go
+type HTMLRenderer struct {
+    Layout      []string
+    CustomFuncs template.FuncMap
+    ExtraData   map[string]any
+}
+```
+
+- **Layouts** – must define `{{ define "root" }}`.  
+- **Content templates** – must define `{{ define "content" }}`.  
+- **CustomFuncs** – inject helper functions.  
+- **ExtraData** – pass additional values to all templates.  
+
+---
+
+### Writer
+
+Defines how output is written.
 
 ```go
 type Writer interface {
-	Write(path string, content string) error
+    Write(path string, content string) error
 }
 ```
 
@@ -213,148 +127,143 @@ Default implementation:
 ```go
 type FileWriter struct{}
 
-func (FileWriter) Write(path string, content string) error {
-	_ = os.MkdirAll(filepath.Dir(path), 0755)
-	return os.WriteFile(path, []byte(content), 0644)
-}
+func (FileWriter) Write(path, content string) error
 ```
 
-Swap this out to write to memory, S3, etc.
+Writes files to disk (mkdir + write).  
 
 ---
 
-## 🖌️ Rendering
+### Tasks
 
-Rendering is abstracted via this interface:
-
-```go
-type Renderer interface {
-	Render(RenderContext) (string, error)
-}
-```
-
-The built-in `HTMLRenderer` supports:
-
-- Go templates (`html/template`)
-- Layouts (via `[]string`)
-- Custom data injection
-- Custom template funcs
-
----
-
-## ⚙️ Tasks
-
-You can register custom tasks to be executed **before** or **after** the build.  
-A task must implement the following interface:
+Hook into the build with before/after tasks.
 
 ```go
 type Task interface {
-	Run(ctx TaskContext) error
-	IsCritical() bool
+    Run(ctx TaskContext) error
+    IsCritical() bool
 }
 
 type TaskContext struct {
-	OutputDir string
+    OutputDir string
 }
 ```
 
-This allows you to perform custom logic like preparing directories, copying assets, or generating extra files.
+- **Critical tasks** – stop the build on failure.  
+- **Non-critical tasks** – log and continue.  
 
-### 🧪 Example
+#### CopyTask (built-in)
 
-```go
-type PrintTask struct{}
-
-func (PrintTask) Run(ctx task.TaskContext) error {
-	fmt.Println("Building to:", ctx.OutputDir)
-	return nil
-}
-
-func (PrintTask) IsCritical() bool {
-	return false
-}
-```
-
-Register the task:
+Copy static assets into the build output.
 
 ```go
-builder := builder.Builder{
-	OutputDir: "public",
-	Writer:    &writer.FileWriter{},
-	Pages:     []page.Generator{...},
-	BeforeTasks: []task.Task{
-		PrintTask{},
-	},
-}
+func NewCopyTask(sourceDir, outputSubDir string, resolver PathResolver) CopyTask
 ```
 
 ---
 
+### Dev Server
 
-### 📁 CopyTask (built-in)
-
-`CopyTask` is a built-in task in the `taskutil` package that copies all files from a given `SourceDir` into the builder's `OutputDir`.  
-Optionally, you can specify an `OutputSubDir` to copy into a subfolder.
-
-**Always use the constructor** `NewCopyTask(...)` – do not initialize the struct manually with `{}`.
-
-#### ✅ Example: Copy static assets
-
-Suppose you have a `static/` directory with images or icons you want to copy into the output folder during the build:
+Run a simple dev server for local development.
+Tasks will ne also executed on each "refresh".
 
 ```go
+b := builder.Builder{...}
+dev.StartServer(b)
+```
+
+---
+
+## 🚀 Example
+
+A minimal blog generator:
+
+```go
+package main
+
 import (
+    "html/template"
+    "github.com/janmarkuslanger/ssgo/builder"
+    "github.com/janmarkuslanger/ssgo/dev"
+    "github.com/janmarkuslanger/ssgo/page"
+    "github.com/janmarkuslanger/ssgo/rendering"
+    "github.com/janmarkuslanger/ssgo/task"
     "github.com/janmarkuslanger/ssgo/taskutil"
+    "github.com/janmarkuslanger/ssgo/writer"
+    "strings"
+	"os"
 )
 
-copyStatic := taskutil.NewCopyTask("static", "", nil)
-```
+var posts = map[string]map[string]any{
+    "hello-world": {"title": "Hello World", "content": "Welcome to my blog!"},
+    "second-post": {"title": "Second Post", "content": "More content here..."},
+}
 
-To copy into a subfolder like `public/assets/`:
+func main() {
+    gen := page.Generator{
+        Config: page.Config{
+            Template: "templates/blog.html",
+            Pattern:  "/blog/:slug",
+            GetPaths: func() []string {
+                return []string{"/blog/hello-world", "/blog/second-post"}
+            },
+            GetData: func(p page.PagePayload) map[string]any {
+                return posts[p.Params["slug"]]
+            },
+            Renderer: rendering.HTMLRenderer{
+                Layout: []string{"templates/layout.html"},
+                CustomFuncs: template.FuncMap{
+                    "upper": strings.ToUpper,
+                },
+            },
+        },
+    }
 
-```go
-copyStatic := taskutil.NewCopyTask("static", "assets", nil)
-```
+    b := builder.Builder{
+        OutputDir:  "public",
+        Writer:     writer.FileWriter{},
+        Generators: []page.Generator{gen},
+        BeforeTasks: []task.Task{
+            taskutil.NewCopyTask("static", "assets", nil),
+        },
+    }
 
-You can also inject a custom `PathResolver` (mainly for testing):
+    if err := b.Build(); err != nil {
+        panic(err)
+    }
 
-```go
-mockResolver := myMockResolver{}
-copyStatic := taskutil.NewCopyTask("static", "", mockResolver)
-```
-
-#### 🔌 Registering as a `BeforeTask`
-
-```go
-builder := builder.Builder{
-    OutputDir: "public",
-    Writer:    &writer.FileWriter{},
-    Pages:     []page.Generator{...},
-    BeforeTasks: []task.Task{
-        copyStatic,
-    },
+	if os.Getenv("ENV") == "test" {
+		dev.StartServer(b)
+	}
 }
 ```
 
-For example, `static/logo.png` will be copied to `public/logo.png`  
-(or to `public/assets/logo.png` if `OutputSubDir` is set to `assets`).
+Folder structure:
 
-#### 📦 Constructor
-
-```go
-func NewCopyTask(sourceDir string, outputSubDir string, pathResolver PathResolver) CopyTask
 ```
-
-- `sourceDir`: Path to the source folder
-- `outputSubDir`: Optional subfolder inside `OutputDir` (use `""` to copy directly into `OutputDir`)
-- `pathResolver`: Optional path resolver (if `nil`, a default implementation will be used)
+templates/
+  layout.html
+  blog.html
+static/
+  style.css
+```
 
 ---
 
-## 🧪 Dev Server
+## 🗂️ Output Example
 
-You can create a dev server. You need the `NewServer` function from the `dev` package.
-The function expects an builder `builder.Builder` as a param. 
+```
+public/
+  blog/
+    hello-world
+    second-post
+  assets/
+    style.css
+```
+
+---
+
+✅ With SSGO you control **exactly what gets built** — no hidden magic, just Go code.
 
 ## 📖 License
 

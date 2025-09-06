@@ -10,13 +10,22 @@ func NewServer(builder builder.Builder) http.Handler {
 	mux := http.NewServeMux()
 
 	pagePaths := make(map[string]struct{})
-	for _, g := range builder.Pages {
+	for _, g := range builder.Generators {
 		for _, path := range g.Config.GetPaths() {
 			pagePaths[path] = struct{}{}
 			mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+				if err := builder.RunTasks(builder.BeforeTasks); err != nil {
+					panic(err)
+				}
+
 				p := g.GeneratePageInstance(path)
 				c, err := p.Render()
+
 				if err != nil {
+					panic(err)
+				}
+
+				if err := builder.RunTasks(builder.AfterTasks); err != nil {
 					panic(err)
 				}
 

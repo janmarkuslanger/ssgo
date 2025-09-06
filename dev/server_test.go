@@ -1,6 +1,7 @@
 package dev_test
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -13,10 +14,22 @@ import (
 	"github.com/janmarkuslanger/ssgo/builder"
 	"github.com/janmarkuslanger/ssgo/page"
 	"github.com/janmarkuslanger/ssgo/rendering"
+	"github.com/janmarkuslanger/ssgo/task"
 	"github.com/janmarkuslanger/ssgo/writer"
 
 	"github.com/janmarkuslanger/ssgo/dev"
 )
+
+type alwaysFailTask struct {
+	name     string
+	critical bool
+}
+
+func (t alwaysFailTask) Run(ctx task.TaskContext) error {
+	return fmt.Errorf("%s failed (OutputDir=%s)", t.name, ctx.OutputDir)
+}
+
+func (t alwaysFailTask) IsCritical() bool { return t.critical }
 
 func makeTempTemplates(t *testing.T) (string, string) {
 	t.Helper()
@@ -63,7 +76,7 @@ func makeTestBuilder(t *testing.T) builder.Builder {
 	return builder.Builder{
 		OutputDir: output,
 		Writer:    &writer.FileWriter{},
-		Pages: []page.Generator{
+		Generators: []page.Generator{
 			gen("/", "home"),
 			gen("/about", "about"),
 		},
@@ -88,9 +101,79 @@ func makeBrokenBuilder(t *testing.T) builder.Builder {
 	}
 
 	return builder.Builder{
-		OutputDir: t.TempDir(),
+		OutputDir:  t.TempDir(),
+		Writer:     &writer.FileWriter{},
+		Generators: []page.Generator{gen("/broken")},
+	}
+}
+
+func makeTestBuilderWithBrokenBeforeTask(t *testing.T) builder.Builder {
+	t.Helper()
+	layout, tpl := makeTempTemplates(t)
+	renderer := rendering.HTMLRenderer{Layout: []string{layout}}
+
+	gen := func(path, body string) page.Generator {
+		posts := map[string]map[string]any{path: {"Content": body}}
+		return page.Generator{
+			Config: page.Config{
+				Pattern:  path,
+				Template: tpl,
+				GetPaths: func() []string { return []string{path} },
+				GetData:  func(p page.PagePayload) map[string]any { return posts[path] },
+				Renderer: renderer,
+			},
+		}
+	}
+
+	output := t.TempDir()
+
+	return builder.Builder{
+		OutputDir: output,
 		Writer:    &writer.FileWriter{},
-		Pages:     []page.Generator{gen("/broken")},
+		Generators: []page.Generator{
+			gen("/test", "Hello"),
+		},
+		BeforeTasks: []task.Task{
+			alwaysFailTask{
+				name:     "Copytask",
+				critical: true,
+			},
+		},
+	}
+}
+
+func makeTestBuilderWithBrokenAfterTask(t *testing.T) builder.Builder {
+	t.Helper()
+	layout, tpl := makeTempTemplates(t)
+	renderer := rendering.HTMLRenderer{Layout: []string{layout}}
+
+	gen := func(path, body string) page.Generator {
+		posts := map[string]map[string]any{path: {"Content": body}}
+		return page.Generator{
+			Config: page.Config{
+				Pattern:  path,
+				Template: tpl,
+				GetPaths: func() []string { return []string{path} },
+				GetData:  func(p page.PagePayload) map[string]any { return posts[path] },
+				Renderer: renderer,
+			},
+		}
+	}
+
+	output := t.TempDir()
+
+	return builder.Builder{
+		OutputDir: output,
+		Writer:    &writer.FileWriter{},
+		Generators: []page.Generator{
+			gen("/test", "Hello"),
+		},
+		AfterTasks: []task.Task{
+			alwaysFailTask{
+				name:     "Copytask",
+				critical: true,
+			},
+		},
 	}
 }
 
@@ -146,6 +229,34 @@ func TestNewServer_PanicsOnRenderError(t *testing.T) {
 		}
 	}()
 	req := httptest.NewRequest(http.MethodGet, "/broken", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+}
+
+func TestNewServer_PanicsOnBeforeTaskError(t *testing.T) {
+	b := makeTestBuilderWithBrokenBeforeTask(t)
+	mux := dev.NewServer(b)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatalf("expected panic on render error")
+		}
+	}()
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+}
+
+func TestNewServer_PanicsOnAfterTaskError(t *testing.T) {
+	b := makeTestBuilderWithBrokenAfterTask(t)
+	mux := dev.NewServer(b)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatalf("expected panic on render error")
+		}
+	}()
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 }
