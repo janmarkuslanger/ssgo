@@ -2,6 +2,7 @@ package page
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/janmarkuslanger/ssgo/rendering"
 )
@@ -44,16 +45,45 @@ func (g Generator) GeneratePageInstance(path string) Page {
 }
 
 func (g Generator) GeneratePageInstances() ([]Page, error) {
-	pages := []Page{}
-
 	if g.Config.GetPaths == nil {
-		return pages, errors.New("GetPaths is not defined in Config")
+		return nil, errors.New("GetPaths is not defined in Config")
 	}
 
-	for _, path := range g.Config.GetPaths() {
-		p := g.GeneratePageInstance(path)
-		pages = append(pages, p)
+	paths := g.Config.GetPaths()
+	if len(paths) == 0 {
+		return nil, nil
 	}
+
+	const maxWorkers = 8
+	workers := maxWorkers
+	if len(paths) < workers {
+		workers = len(paths)
+	}
+
+	jobs := make(chan string)
+	pages := make([]Page, 0, len(paths))
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for path := range jobs {
+				p := g.GeneratePageInstance(path)
+
+				mu.Lock()
+				pages = append(pages, p)
+				mu.Unlock()
+			}
+		}()
+	}
+
+	for _, path := range paths {
+		jobs <- path
+	}
+	close(jobs)
+	wg.Wait()
 
 	return pages, nil
 }
