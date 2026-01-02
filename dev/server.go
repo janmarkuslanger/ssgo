@@ -11,6 +11,9 @@ func NewServer(builder builder.Builder) http.Handler {
 
 	pagePaths := make(map[string]struct{})
 	for _, g := range builder.Generators {
+		if g.Config.GetPaths == nil {
+			continue
+		}
 		for _, path := range g.Config.GetPaths() {
 			pagePaths[path] = struct{}{}
 			mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {

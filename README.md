@@ -99,7 +99,7 @@ type PagePayload struct {
 - **`Template`** – path to the template file.  
 - **`Pattern`** – route pattern used for param extraction only (supports params, e.g. `/blog/:slug`).  
 - **`GetPaths()`** – returns all paths to generate (required for `GeneratePageInstances`).  
-- **`GetPaths()` values** – used as output paths; with `FileWriter` avoid leading `/` to stay inside `OutputDir`.  
+- **`GetPaths()` values** – used as output paths and must be relative; `Build()` errors on absolute or traversal paths.  
 - **`GetData(payload)`** – returns data for each path.  
 - **`Renderer`** – responsible for rendering (must be set, e.g. `rendering.HTMLRenderer`).  
 
@@ -208,10 +208,10 @@ type TaskContext struct {
 Copy static assets into the build output.
 
 ```go
-func NewCopyTask(sourceDir, outputSubDir string, resolver PathResolver) CopyTask
+func NewCopyTask(sourceDir, outputSubDir string, resolver PathResolver) *CopyTask
 ```
 
-Note: it returns a value; take its address when adding it to `[]task.Task`.  
+Note: it returns a `*CopyTask`, which implements `task.Task`.  
 
 ---
 
@@ -279,7 +279,7 @@ func main() {
         Writer:     writer.NewFileWriter(),
         Generators: []page.Generator{gen},
         BeforeTasks: []task.Task{
-            &copyTask,
+            copyTask,
         },
     }
 
