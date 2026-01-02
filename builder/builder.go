@@ -3,6 +3,7 @@ package builder
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/janmarkuslanger/ssgo/page"
 	"github.com/janmarkuslanger/ssgo/rendering"
@@ -49,13 +50,24 @@ func (b Builder) Build() error {
 		}
 
 		for _, p := range pages {
+			cleanPath := filepath.Clean(p.Path)
+			if cleanPath == "." {
+				return fmt.Errorf("page path must not be empty")
+			}
+			if filepath.IsAbs(cleanPath) {
+				return fmt.Errorf("page path must be relative, got %q", p.Path)
+			}
+			if cleanPath == ".." || strings.HasPrefix(cleanPath, ".."+string(filepath.Separator)) {
+				return fmt.Errorf("page path must not traverse outside output dir: %q", p.Path)
+			}
+
 			content, err := p.Render()
 			if err != nil {
 				// TODO: make configurable if it should continue if single page fails
 				return fmt.Errorf("failed to render page %s: %w", p.Path, err)
 			}
 
-			fullPath := filepath.Join(b.OutputDir, p.Path)
+			fullPath := filepath.Join(b.OutputDir, cleanPath)
 			if err := b.Writer.Write(fullPath, content); err != nil {
 				return fmt.Errorf("failed to write page %s: %w", p.Path, err)
 			}
