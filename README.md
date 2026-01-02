@@ -87,6 +87,7 @@ type Config struct {
     Pattern  string
     GetPaths func() []string
     GetData  func(PagePayload) map[string]any
+    MaxWorkers int
     Renderer rendering.Renderer
 }
 
@@ -99,8 +100,9 @@ type PagePayload struct {
 - **`Template`** – path to the template file.  
 - **`Pattern`** – route pattern used for param extraction only (supports params, e.g. `/blog/:slug`).  
 - **`GetPaths()`** – returns all paths to generate (required for `GeneratePageInstances`).  
-- **`GetPaths()` values** – used as output paths; with `FileWriter` avoid leading `/` to stay inside `OutputDir`.  
+- **`GetPaths()` values** – used as output paths and must be relative; `Build()` errors on absolute or traversal paths.  
 - **`GetData(payload)`** – returns data for each path.  
+- **`MaxWorkers`** – max parallel page generation; values <= 1 run sequentially (order is preserved). When > 1, `GetData` must be concurrency-safe.  
 - **`Renderer`** – responsible for rendering (must be set, e.g. `rendering.HTMLRenderer`).  
 
 #### Page
