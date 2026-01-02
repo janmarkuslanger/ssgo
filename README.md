@@ -102,7 +102,7 @@ type PagePayload struct {
 - **`GetPaths()`** – returns all paths to generate (required for `GeneratePageInstances`).  
 - **`GetPaths()` values** – used as output paths and must be relative; `Build()` errors on absolute or traversal paths.  
 - **`GetData(payload)`** – returns data for each path.  
-- **`MaxWorkers`** – max parallel page generation; values <= 1 run sequentially (order is preserved). When > 1, `GetData` must be concurrency-safe.  
+- **`MaxWorkers`** – max parallel page generation; values <= 1 run sequentially, values > 1 run concurrently; **order is always preserved regardless of the value**, but for values > 1 `GetData` must be concurrency-safe.  
 - **`Renderer`** – responsible for rendering (must be set, e.g. `rendering.HTMLRenderer`).  
 
 #### Page
