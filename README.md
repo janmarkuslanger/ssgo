@@ -16,8 +16,8 @@
 ## ✨ Features
 
 - **Explicit API**: You control paths, data, templates, and output.  
-- **Pluggable renderers**: Default is `html/template`, but you can implement your own.  
-- **Flexible writers**: Write to disk, memory, S3, or anywhere.  
+- **Pluggable renderers**: Ships with `rendering.HTMLRenderer` (`html/template`); you can implement your own.  
+- **Flexible writers**: Implement the `Writer` interface (disk, memory, S3, etc.).  
 - **Tasks**: Run hooks before/after the build (asset copying, cleanup, etc.).  
 - **Dev server**: Serve your build locally during development.  
 
@@ -40,27 +40,46 @@ The `builder.Builder` orchestrates everything.
 ```go
 type Builder struct {
     OutputDir   string
-    Writer      writer.Writer
     Generators  []page.Generator
+    Writer      writer.Writer
+    Renderer    rendering.Renderer
     BeforeTasks []task.Task
     AfterTasks  []task.Task
 }
 
-func (b *Builder) Build() error
+func (b Builder) RunTasks(tasks []task.Task) error
+func (b Builder) Build() error
 ```
 
 - **`OutputDir`** – where generated files go.  
-- **`Writer`** – implements how files are written (default: `writer.FileWriter`).  
+- **`Writer`** – implements how files are written (e.g. `writer.NewFileWriter()`).  
 - **`Generators`** – list of page generators.  
+- **`Renderer`** – currently unused by `Builder`; renderers are set per generator.  
 - **`BeforeTasks` / `AfterTasks`** – tasks to run before/after the build.  
+- **`RunTasks(tasks)`** – runs a task list and stops on critical failures.  
 - **`Build()`** – executes the full build.  
 
 ---
 
 ### Pages & Generators
 
-Define what content to generate with a `page.Config`.  
-A generator combines a pattern, template, and data.
+A generator is the unit the builder executes. It holds the config for how pages are created.
+
+#### Generator
+
+```go
+type Generator struct {
+    Config Config
+}
+
+func (g Generator) GeneratePageInstance(path string) Page
+func (g Generator) GeneratePageInstances() ([]Page, error)
+```
+
+- **`GeneratePageInstances()`** – uses `GetPaths()` and errors if it is nil.  
+- **`GeneratePageInstance(path)`** – extracts params via `Pattern` and calls `GetData` if set.  
+
+#### Config
 
 ```go
 type Config struct {
@@ -81,7 +100,33 @@ type PagePayload struct {
 - **`Pattern`** – route pattern (supports params, e.g. `/blog/:slug`).  
 - **`GetPaths()`** – returns all paths to generate.  
 - **`GetData(payload)`** – returns data for each path.  
-- **`Renderer`** – responsible for rendering (default: `HTMLRenderer`).  
+- **`Renderer`** – responsible for rendering (must be set, e.g. `rendering.HTMLRenderer`).  
+
+#### Page
+
+```go
+type Page struct {
+    Path     string
+    Params   map[string]string
+    Data     map[string]any
+    Template string
+    Renderer rendering.Renderer
+}
+
+func (p Page) Render() (string, error)
+```
+
+- **`Render()`** – errors if no renderer is set and renders with `Template` + `Data`.  
+
+#### Path helpers
+
+```go
+func ExtractParams(pattern, path string) map[string]string
+func BuildPath(pattern string, params map[string]string) (string, error)
+```
+
+- **`BuildPath`** – returns an error if a required param is missing.  
+- **`ExtractParams`** – expects matching segment counts between pattern and path.  
 
 ---
 
@@ -90,26 +135,30 @@ type PagePayload struct {
 Abstracted by the `rendering.Renderer` interface:
 
 ```go
+type RenderContext struct {
+    Data     map[string]any
+    Template string
+}
+```
+
+```go
 type Renderer interface {
     Render(RenderContext) (string, error)
 }
 ```
 
-#### HTMLRenderer (default)
+#### HTMLRenderer
 
 ```go
 type HTMLRenderer struct {
-    Layout      []string
     CustomFuncs template.FuncMap
-    ExtraData   map[string]any
+    Layout      []string
 }
 ```
 
 - **Layouts** – must define `{{ define "root" }}`.  
 - **Content templates** – must define `{{ define "content" }}`.  
 - **CustomFuncs** – inject helper functions.  
-- **ExtraData** – pass additional values to all templates.  
-
 ---
 
 ### Writer
@@ -127,10 +176,11 @@ Default implementation:
 ```go
 type FileWriter struct{}
 
-func (FileWriter) Write(path, content string) error
+func NewFileWriter() *FileWriter
+func (w *FileWriter) Write(path, content string) error
 ```
 
-Writes files to disk (mkdir + write).  
+Writes files to disk (mkdir + write) and appends `.html` when missing.  
 
 ---
 
@@ -160,17 +210,21 @@ Copy static assets into the build output.
 func NewCopyTask(sourceDir, outputSubDir string, resolver PathResolver) CopyTask
 ```
 
+Note: it returns a value; take its address when adding it to `[]task.Task`.  
+
 ---
 
 ### Dev Server
 
 Run a simple dev server for local development.
-Tasks will ne also executed on each "refresh".
+Tasks are also executed on each page request.
 
 ```go
 b := builder.Builder{...}
 dev.StartServer(b)
 ```
+
+`dev.NewServer` returns an `http.Handler`; `dev.StartServer` listens on `:8080`.
 
 ---
 
@@ -184,14 +238,12 @@ package main
 import (
     "html/template"
     "github.com/janmarkuslanger/ssgo/builder"
-    "github.com/janmarkuslanger/ssgo/dev"
     "github.com/janmarkuslanger/ssgo/page"
     "github.com/janmarkuslanger/ssgo/rendering"
     "github.com/janmarkuslanger/ssgo/task"
     "github.com/janmarkuslanger/ssgo/taskutil"
     "github.com/janmarkuslanger/ssgo/writer"
     "strings"
-	"os"
 )
 
 var posts = map[string]map[string]any{
@@ -203,9 +255,9 @@ func main() {
     gen := page.Generator{
         Config: page.Config{
             Template: "templates/blog.html",
-            Pattern:  "/blog/:slug",
+            Pattern:  "blog/:slug",
             GetPaths: func() []string {
-                return []string{"/blog/hello-world", "/blog/second-post"}
+                return []string{"blog/hello-world", "blog/second-post"}
             },
             GetData: func(p page.PagePayload) map[string]any {
                 return posts[p.Params["slug"]]
@@ -219,22 +271,20 @@ func main() {
         },
     }
 
+    copyTask := taskutil.NewCopyTask("static", "assets", nil)
+
     b := builder.Builder{
         OutputDir:  "public",
-        Writer:     writer.FileWriter{},
+        Writer:     writer.NewFileWriter(),
         Generators: []page.Generator{gen},
         BeforeTasks: []task.Task{
-            taskutil.NewCopyTask("static", "assets", nil),
+            &copyTask,
         },
     }
 
     if err := b.Build(); err != nil {
         panic(err)
     }
-
-	if os.Getenv("ENV") == "test" {
-		dev.StartServer(b)
-	}
 }
 ```
 
@@ -255,8 +305,8 @@ static/
 ```
 public/
   blog/
-    hello-world
-    second-post
+    hello-world.html
+    second-post.html
   assets/
     style.css
 ```
