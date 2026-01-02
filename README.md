@@ -97,8 +97,9 @@ type PagePayload struct {
 ```
 
 - **`Template`** – path to the template file.  
-- **`Pattern`** – route pattern (supports params, e.g. `/blog/:slug`).  
-- **`GetPaths()`** – returns all paths to generate.  
+- **`Pattern`** – route pattern used for param extraction only (supports params, e.g. `/blog/:slug`).  
+- **`GetPaths()`** – returns all paths to generate (required for `GeneratePageInstances`).  
+- **`GetPaths()` values** – used as output paths; with `FileWriter` avoid leading `/` to stay inside `OutputDir`.  
 - **`GetData(payload)`** – returns data for each path.  
 - **`Renderer`** – responsible for rendering (must be set, e.g. `rendering.HTMLRenderer`).  
 
@@ -126,7 +127,7 @@ func BuildPath(pattern string, params map[string]string) (string, error)
 ```
 
 - **`BuildPath`** – returns an error if a required param is missing.  
-- **`ExtractParams`** – expects matching segment counts between pattern and path.  
+- **`ExtractParams`** – does not validate segment counts; ensure pattern and path match.  
 
 ---
 
@@ -247,8 +248,8 @@ import (
 )
 
 var posts = map[string]map[string]any{
-    "hello-world": {"title": "Hello World", "content": "Welcome to my blog!"},
-    "second-post": {"title": "Second Post", "content": "More content here..."},
+    "hello-world": {"Title": "Hello World", "Content": "Welcome to my blog!"},
+    "second-post": {"Title": "Second Post", "Content": "More content here..."},
 }
 
 func main() {
