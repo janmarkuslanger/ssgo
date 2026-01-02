@@ -9,12 +9,12 @@ import (
 	"github.com/janmarkuslanger/ssgo/task"
 )
 
-func NewCopyTask(sourceDir string, outputSubDir string, pathResolver PathResolver) CopyTask {
+func NewCopyTask(sourceDir string, outputSubDir string, pathResolver PathResolver) *CopyTask {
 	if pathResolver == nil {
 		pathResolver = defaultPathResolver{}
 	}
 
-	return CopyTask{
+	return &CopyTask{
 		SourceDir:    sourceDir,
 		OutputSubDir: outputSubDir,
 		pathResolver: pathResolver,

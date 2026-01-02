@@ -222,6 +222,81 @@ func TestBuilder_Build_TasksAfter_FatalErr(t *testing.T) {
 	}
 }
 
+func TestBuilder_Build_RejectsAbsolutePath(t *testing.T) {
+	b := builder.Builder{
+		OutputDir: "/test",
+		Writer:    MockWriter{},
+		Generators: []page.Generator{
+			{
+				Config: page.Config{
+					Renderer: MockRenderer{},
+					GetPaths: func() []string {
+						return []string{"/absolute"}
+					},
+				},
+			},
+		},
+	}
+
+	err := b.Build()
+	if err == nil {
+		t.Fatal("expected error for absolute path")
+	}
+	if !strings.Contains(err.Error(), "page path must be relative") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestBuilder_Build_RejectsTraversalPath(t *testing.T) {
+	b := builder.Builder{
+		OutputDir: "/test",
+		Writer:    MockWriter{},
+		Generators: []page.Generator{
+			{
+				Config: page.Config{
+					Renderer: MockRenderer{},
+					GetPaths: func() []string {
+						return []string{"../outside"}
+					},
+				},
+			},
+		},
+	}
+
+	err := b.Build()
+	if err == nil {
+		t.Fatal("expected error for traversal path")
+	}
+	if !strings.Contains(err.Error(), "must not traverse outside output dir") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestBuilder_Build_RejectsEmptyPath(t *testing.T) {
+	b := builder.Builder{
+		OutputDir: "/test",
+		Writer:    MockWriter{},
+		Generators: []page.Generator{
+			{
+				Config: page.Config{
+					Renderer: MockRenderer{},
+					GetPaths: func() []string {
+						return []string{""}
+					},
+				},
+			},
+		},
+	}
+
+	err := b.Build()
+	if err == nil {
+		t.Fatal("expected error for empty path")
+	}
+	if !strings.Contains(err.Error(), "page path must not be empty") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestBuilder_Build_FailingGeneratePageInstances(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
