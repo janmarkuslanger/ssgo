@@ -248,8 +248,8 @@ import (
 )
 
 var posts = map[string]map[string]any{
-    "hello-world": {"Title": "Hello World", "Content": "Welcome to my blog!"},
-    "second-post": {"Title": "Second Post", "Content": "More content here..."},
+    "hello-world": {"title": "Hello World", "content": "Welcome to my blog!"},
+    "second-post": {"title": "Second Post", "content": "More content here..."},
 }
 
 func main() {
