@@ -112,3 +112,31 @@ func TestGeneratorGeneratePages_WithData(t *testing.T) {
 		t.Errorf("unexpected newnumber: got %q, want %q", n, 667)
 	}
 }
+
+func TestGeneratorGeneratePages_ConcurrencyKeepsOrder(t *testing.T) {
+	paths := []string{"first", "second", "third", "fourth"}
+	c := page.Config{
+		GetPaths: func() []string {
+			return paths
+		},
+		MaxWorkers: 3,
+	}
+	g := page.Generator{
+		Config: c,
+	}
+	p, err := g.GeneratePageInstances()
+
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if len(p) != len(paths) {
+		t.Fatalf("expected %d pages, got %d", len(paths), len(p))
+	}
+
+	for i, path := range paths {
+		if p[i].Path != path {
+			t.Fatalf("unexpected order at %d: got %q, want %q", i, p[i].Path, path)
+		}
+	}
+}
