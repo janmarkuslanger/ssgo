@@ -71,3 +71,65 @@ func TestBuildPath_Noparamneeded(t *testing.T) {
 		t.Errorf("unexpected path: got %q, want %q", got, "/hello/world")
 	}
 }
+
+func TestNormalizePagePath(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{input: "about", expected: "about"},
+		{input: "/about", expected: "about"},
+		{input: "//about/", expected: "about"},
+	}
+
+	for _, c := range cases {
+		got, err := page.NormalizePagePath(c.input)
+		if err != nil {
+			t.Fatalf("NormalizePagePath(%q) unexpected error: %v", c.input, err)
+		}
+		if got != c.expected {
+			t.Fatalf("NormalizePagePath(%q) = %q, want %q", c.input, got, c.expected)
+		}
+	}
+}
+
+func TestNormalizePagePath_Errors(t *testing.T) {
+	cases := []string{
+		"",
+		"/",
+		"../outside",
+	}
+
+	for _, c := range cases {
+		if _, err := page.NormalizePagePath(c); err == nil {
+			t.Fatalf("NormalizePagePath(%q) expected error but got nil", c)
+		}
+	}
+}
+
+func TestNormalizeRoutePath(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{input: "about", expected: "/about"},
+		{input: "/about", expected: "/about"},
+		{input: "/", expected: "/"},
+	}
+
+	for _, c := range cases {
+		got, err := page.NormalizeRoutePath(c.input)
+		if err != nil {
+			t.Fatalf("NormalizeRoutePath(%q) unexpected error: %v", c.input, err)
+		}
+		if got != c.expected {
+			t.Fatalf("NormalizeRoutePath(%q) = %q, want %q", c.input, got, c.expected)
+		}
+	}
+}
+
+func TestNormalizeRoutePath_Traversal(t *testing.T) {
+	if _, err := page.NormalizeRoutePath("../outside"); err == nil {
+		t.Fatal("NormalizeRoutePath expected error but got nil")
+	}
+}

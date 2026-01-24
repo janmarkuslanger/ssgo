@@ -2,6 +2,7 @@ package page_test
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/janmarkuslanger/ssgo/page"
@@ -110,6 +111,26 @@ func TestGeneratorGeneratePages_WithData(t *testing.T) {
 
 	if n := p[2].Data["newnumber"]; n != 667 {
 		t.Errorf("unexpected newnumber: got %q, want %q", n, 667)
+	}
+}
+
+func TestGeneratorGeneratePages_InvalidPatternMatch(t *testing.T) {
+	c := page.Config{
+		Pattern: "/add/:number",
+		GetPaths: func() []string {
+			return []string{"/add"}
+		},
+	}
+	g := page.Generator{
+		Config: c,
+	}
+	_, err := g.GeneratePageInstances()
+
+	if err == nil {
+		t.Fatal("expected an error but got nil")
+	}
+	if !strings.Contains(err.Error(), "does not match pattern") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
