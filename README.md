@@ -1,7 +1,7 @@
 <p align="center"><img src="/logo.svg" alt="Logo" width="200" /></p>
 
 <h1 align="center">SSGO</h1>
-<p align="center">SSGO is a minimal **static site generator** written in Go. It is designed for <strong>clarity, explicit APIs, and flexibility</strong>.</p>
+<p align="center">SSGO is a minimal static site generator written in Go. It is designed for <strong>clarity, explicit APIs, and flexibility</strong>.</p>
 
 <p align="center">
   <a href="https://codecov.io/gh/janmarkuslanger/ssgo"><img src="https://codecov.io/gh/janmarkuslanger/ssgo/graph/badge.svg?token=XUZ7Y1VN3T" alt="Code coverage"></a>
@@ -13,7 +13,7 @@
 
 ---
 
-## ✨ Features
+## Features
 
 - **Explicit API**: You control paths, data, templates, and output.  
 - **Pluggable renderers**: Ships with `rendering.HTMLRenderer` (`html/template`); you can implement your own.  
@@ -23,15 +23,97 @@
 
 ---
 
-## 📦 Installation
+## Quickstart
+
+### 1) Install
 
 ```bash
 go get github.com/janmarkuslanger/ssgo@latest
 ```
 
+### 2) Create templates
+
+```bash
+mkdir -p templates
+cat > templates/layout.html <<'EOF'
+{{define "root"}}<html><body>{{template "content" .}}</body></html>{{end}}
+EOF
+cat > templates/page.html <<'EOF'
+{{define "content"}}<h1>{{.Title}}</h1><p>{{.Content}}</p>{{end}}
+EOF
+```
+
+### 3) Create `main.go`
+
+```go
+package main
+
+import (
+	"flag"
+	"log"
+
+	"github.com/janmarkuslanger/ssgo/builder"
+	"github.com/janmarkuslanger/ssgo/dev"
+	"github.com/janmarkuslanger/ssgo/page"
+	"github.com/janmarkuslanger/ssgo/rendering"
+	"github.com/janmarkuslanger/ssgo/writer"
+)
+
+func main() {
+	devMode := flag.Bool("dev", false, "start dev server")
+	flag.Parse()
+
+	renderer := rendering.HTMLRenderer{
+		Layout: []string{"templates/layout.html"},
+	}
+
+	blog := page.Generator{
+		Config: page.Config{
+			Template: "templates/page.html",
+			Pattern:  "/blog/:slug",
+			GetPaths: func() []string { return []string{"/blog/hello", "/blog/ssgo"} },
+			GetData: func(p page.PagePayload) map[string]any {
+				return map[string]any{
+					"Title":   p.Params["slug"],
+					"Content": "Hello from " + p.Params["slug"],
+				}
+			},
+			Renderer: renderer,
+		},
+	}
+
+	b := builder.Builder{
+		OutputDir:  "dist",
+		Writer:     writer.NewFileWriter(),
+		Generators: []page.Generator{blog},
+	}
+
+	if *devMode {
+		dev.StartServer(b)
+		return
+	}
+
+	if err := b.Build(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+### 4) Run
+
+```bash
+go run . --dev
+# open http://localhost:8080/blog/hello
+```
+
+```bash
+go run .
+# outputs dist/blog/hello.html and dist/blog/ssgo.html
+```
+
 ---
 
-## 🔑 Core Concepts & API
+## Core Concepts & API
 
 ### Builder
 
@@ -100,7 +182,7 @@ type PagePayload struct {
 - **`Template`** – path to the template file.  
 - **`Pattern`** – route pattern used for param extraction only (supports params, e.g. `/blog/:slug`).  
 - **`GetPaths()`** – returns all paths to generate (required for `GeneratePageInstances`).  
-- **`GetPaths()` values** – used as output paths and must be relative; `Build()` errors on absolute or traversal paths.  
+- **`GetPaths()` values** – normalized before build output; leading `/` is accepted and stripped, traversal paths are rejected, and empty/root (`/`) paths are invalid for build output.  
 - **`GetData(payload)`** – returns data for each path.  
 - **`MaxWorkers`** – max parallel page generation; values <= 1 run sequentially, values > 1 run concurrently; **order is always preserved regardless of the value**, but for values > 1 `GetData` must be concurrency-safe.  
 - **`Renderer`** – responsible for rendering (must be set, e.g. `rendering.HTMLRenderer`).  
@@ -126,10 +208,14 @@ func (p Page) Render() (string, error)
 ```go
 func ExtractParams(pattern, path string) map[string]string
 func BuildPath(pattern string, params map[string]string) (string, error)
+func NormalizePagePath(path string) (string, error)
+func NormalizeRoutePath(path string) (string, error)
 ```
 
 - **`BuildPath`** – returns an error if a required param is missing.  
 - **`ExtractParams`** – does not validate segment counts; ensure pattern and path match.  
+- **`NormalizePagePath`** – strips leading `/`, cleans path, rejects traversal, and errors on empty/root paths.  
+- **`NormalizeRoutePath`** – normalizes to a leading `/` and rejects traversal; `/` is allowed.  
 
 ---
 
@@ -231,7 +317,7 @@ dev.StartServer(b)
 
 ---
 
-## 🚀 Example
+## Example
 
 A minimal blog generator:
 
@@ -303,7 +389,7 @@ static/
 
 ---
 
-## 🗂️ Output Example
+## Output Example
 
 ```
 public/
@@ -316,9 +402,7 @@ public/
 
 ---
 
-✅ With SSGO you control **exactly what gets built** — no hidden magic, just Go code.
-
-## 📖 License
+## License
 
 MIT © [Jan Markus Langer](https://github.com/janmarkuslanger)
 

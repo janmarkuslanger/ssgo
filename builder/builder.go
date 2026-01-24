@@ -3,7 +3,6 @@ package builder
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/janmarkuslanger/ssgo/page"
 	"github.com/janmarkuslanger/ssgo/rendering"
@@ -50,15 +49,9 @@ func (b Builder) Build() error {
 		}
 
 		for _, p := range pages {
-			cleanPath := filepath.Clean(p.Path)
-			if cleanPath == "." {
-				return fmt.Errorf("page path must not be empty")
-			}
-			if filepath.IsAbs(cleanPath) {
-				return fmt.Errorf("page path must be relative, got %q", p.Path)
-			}
-			if cleanPath == ".." || strings.HasPrefix(cleanPath, ".."+string(filepath.Separator)) {
-				return fmt.Errorf("page path must not traverse outside output dir: %q", p.Path)
+			cleanPath, err := page.NormalizePagePath(p.Path)
+			if err != nil {
+				return err
 			}
 
 			content, err := p.Render()

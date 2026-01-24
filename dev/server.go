@@ -1,9 +1,11 @@
 package dev
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/janmarkuslanger/ssgo/builder"
+	"github.com/janmarkuslanger/ssgo/page"
 )
 
 func NewServer(builder builder.Builder) http.Handler {
@@ -15,8 +17,14 @@ func NewServer(builder builder.Builder) http.Handler {
 			continue
 		}
 		for _, path := range g.Config.GetPaths() {
-			pagePaths[path] = struct{}{}
-			mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			routePath, err := page.NormalizeRoutePath(path)
+			if err != nil {
+				panic(fmt.Errorf("invalid page path %q: %w", path, err))
+			}
+			pagePaths[routePath] = struct{}{}
+			path := path
+			g := g
+			mux.HandleFunc(routePath, func(w http.ResponseWriter, r *http.Request) {
 				if err := builder.RunTasks(builder.BeforeTasks); err != nil {
 					panic(err)
 				}

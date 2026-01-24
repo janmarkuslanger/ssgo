@@ -222,7 +222,7 @@ func TestBuilder_Build_TasksAfter_FatalErr(t *testing.T) {
 	}
 }
 
-func TestBuilder_Build_RejectsAbsolutePath(t *testing.T) {
+func TestBuilder_Build_AcceptsLeadingSlash(t *testing.T) {
 	b := builder.Builder{
 		OutputDir: "/test",
 		Writer:    MockWriter{},
@@ -239,10 +239,7 @@ func TestBuilder_Build_RejectsAbsolutePath(t *testing.T) {
 	}
 
 	err := b.Build()
-	if err == nil {
-		t.Fatal("expected error for absolute path")
-	}
-	if !strings.Contains(err.Error(), "page path must be relative") {
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -292,7 +289,7 @@ func TestBuilder_Build_RejectsEmptyPath(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty path")
 	}
-	if !strings.Contains(err.Error(), "page path must not be empty") {
+	if !strings.Contains(err.Error(), "path at index 0 is empty") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

@@ -2,6 +2,8 @@ package page
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/janmarkuslanger/ssgo/rendering"
@@ -56,6 +58,9 @@ func (g Generator) GeneratePageInstances() ([]Page, error) {
 	if len(paths) == 0 {
 		return pages, nil
 	}
+	if err := g.validatePaths(paths); err != nil {
+		return nil, err
+	}
 
 	workers := g.Config.MaxWorkers
 	if workers <= 1 {
@@ -93,4 +98,16 @@ func (g Generator) GeneratePageInstances() ([]Page, error) {
 	wg.Wait()
 
 	return pages, nil
+}
+
+func (g Generator) validatePaths(paths []string) error {
+	for i, path := range paths {
+		if strings.TrimSpace(path) == "" {
+			return fmt.Errorf("path at index %d is empty", i)
+		}
+		if err := validatePatternMatch(g.Config.Pattern, path); err != nil {
+			return fmt.Errorf("path at index %d: %w", i, err)
+		}
+	}
+	return nil
 }
